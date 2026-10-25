@@ -1,310 +1,344 @@
 {
-  "measured_on": "2026-10-24, Mac mini M2 (Mac14,6), 64 GB, macOS 26.2, sushi 1.3.0",
-  "download": {
-    "source": "ukisai/Swift1.5-Qwen3.8-Flash-Next",
-    "duration_s": 6600,
-    "bytes": 360039201433,
-    "avg_throughput_mbps": 59,
-    "link": "hardline ethernet (en7, ~33 MB/s net per bmon on the serving run); ~12 MB/s on WiFi",
-    "workers": 4,
-    "resumable": true
-  },
-  "convert_wall_clock": {
-    "start": "2026-10-24T15:45:41+08:00",
-    "first_launch_aborted": "2026-10-24T15:45 (BadFlagValue: --experts-k 2.6)",
-    "restart": "2026-10-24T15:45:20+08:00",
-    "complete": "2026-10-24T23:46:51+08:00",
-    "wall_s": 28571,
-    "phases_s": {
-      "tokenizer_and_calibration": 120,
-      "trunk_affine_8bit": 420,
-      "ngram_table_4bit_g32": 600,
-      "expert_layers_48": 27000,
-      "mtp_lmhead_embed_vision_index": 660
-    }
-  },
-  "per_layer_stage_medians_s": {
-    "read": 1.5,
-    "hessian": 81.7,
-    "prep": 79.3,
-    "factor": 0.0,
-    "wait": 2.2,
-    "scale": 88.2,
-    "feedback": 38.2,
-    "search": 354.4,
-    "pack": 0.4,
-    "sum": 646.1
-  },
-  "stage_hour_totals": {
-    "search": 4.75,
-    "scale": 1.18,
-    "hessian": 1.09,
-    "prep": 1.06,
-    "feedback": 0.49,
-    "other": 0.05,
-    "sum": 8.62
-  },
-  "per_layer_wall_minutes": {
-    "median": 9.4,
-    "min": 9.4,
-    "max": 9.5
-  },
-  "memory_peak": {
-    "convert_phase": {
-      "rss_gb": 33,
-      "wired_gb": 7
-    },
-    "mtp_phase": {
-      "rss_gb": 46,
-      "wired_gb": 45,
-      "mem_used_gb": 51.7,
-      "mem_free_gb": 9.0
-    },
-    "serving": {
-      "wired_gb": 46,
-      "mem_used_gb": 54.6,
-      "mem_free_gb": 1.6,
-      "caches_gb": 26.4
-    }
-  },
-  "disk": {
-    "before_download_gb": 524,
-    "after_download_gb": 165,
-    "minimum_during_convert_gb": 111,
-    "after_source_delete_gb": 451,
-    "peak_requirement_gb": 401,
-    "net_cost_gb": 74
-  },
-  "inference": {
-    "prefill_tok_s": 72.7,
-    "decode_tok_s": 45.1,
-    "smoke_test": {
-      "prompt": "Reply with exactly: PACK OK",
-      "output": "PACK OK",
-      "path": "mtp",
-      "prefill_tok_s": 42.0,
-      "decode_tok_s": 32.6,
-      "note": "18-token prompt, 2-token answer: rates on a 20-token exchange, not a steady-state figure"
-    },
-    "code_test": {
-      "prompt": "Write a Python function path_matches(pattern, path) supporting * and ? globs without using fnmatch. Give only the code.",
-      "tokens_streamed": "38 prompt + 269 generated",
-      "wall_s": 29.4,
-      "mtp_attempts": 89,
-      "mtp_accepts": 181,
-      "mtp_avg_per_round": 2.03,
-      "mtp_accept_pct": 81.5,
-      "mtp_depth": 6,
-      "verdict": "correct two-pointer star-backtrack glob matcher, no fnmatch"
-    },
-    "preflight": {
-      "weights_gb": 43.44,
-      "needs_gb": 45.69,
-      "available_gb": 58.0,
-      "fits": true
-    },
-    "kernels_observed": [
-      "exl3 n42 funnel arm=simdmat codebook=mcg dtype=float16 window=15",
-      "exl3-gemm simdgroup-matrix body n=42",
-      "gdn packed prework engaged Hk=16 Hv=48 S=17 B=1",
-      "gdn decode recur engaged S=1 Hk=16 Hv=48",
-      "attn-pd sushi_attn_pd qk=256 v=256 dispatches=1",
-      "mtp draft rerank engaged (3-bit coarse -> top-32 -> trunk re-score)",
-      "ngram speculative decoding engaged (mode=trellis)",
-      "prefill: hybrid scan, fused scan, chunked mmv (n42, window 15)"
-    ]
-  },
-  "serving_verified": {
-    "checked_utc": "2026-10-25T01:29Z",
-    "server_uptime_min": 14,
-    "v1_models": {
-      "id": "beamster/Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw",
-      "loaded": true,
-      "state": "ready",
-      "bytes_resident": 47539286008,
-      "bytes_on_disk": 47261601960,
-      "context_length": 131072,
-      "max_model_len": 131072,
-      "batched_decode": true,
-      "capabilities": [
-        "chat",
-        "tool_use",
-        "streaming",
-        "vision",
-        "reasoning",
-        "json_schema"
-      ]
-    },
-    "server_flags": "--mtp --mtp-min-depth 1 --mtp-max-depth 4 --mtp-typical 0.2 --mtp-greedy-tail --host 0.0.0.0 --port 8088 --prefix-cache-entries 4 --prefix-cache-mem 0 --prefix-cache-disk 8GB --max-concurrent 4 --kv-quant 8 --temp 1.0 --top-p 0.95 --top-k 20 --ctx-size 131072 --prefill-chunk 32768 --qwen-gdn 16 --expert-pick-tolerance 0.3 --metrics",
-    "system": {
-      "vm_memory_pressure": 0,
-      "system_wide_free_pct": 94,
-      "iogpu_wired_limit_mb": 60416,
-      "vm_stat_pages_free_gb": 0.1,
-      "note": "pages free is near zero by design on a serving 64 GB Mac; vm.memory_pressure 0 is the signal that matters"
-    }
-  },
-  "integrity": {
-    "shards": 52,
-    "tensors": 3069,
-    "index_entries": 3069,
-    "unresolved_index_entries": 0,
-    "payload_bytes_vs_on_disk": "equal",
-    "defects": 0
-  },
-  "sushi_list_verdict": {
-    "pack": "qwen3.8-flash-next:2.6bpw",
-    "published_size_gb": 73.7,
-    "this_mac": "fits",
-    "recommendation": "recommended for a 64 GB Mac (2bpw 64.8 / 2.6bpw 73.7 / 3bpw 79.1 / 4bpw 159.0 may-stream)"
-  },
-  "kld_divergence": {
-    "fixture": "standard4",
-    "captures": {
-      "ours": {
-        "elapsed_s": 307.6,
-        "peak_active_gb": 12.62,
-        "mean_strict_nll": 0.279402202,
-        "out": "~/kld/ours/standard4"
-      },
-      "theirs": {
-        "elapsed_s": 306.3,
-        "peak_active_gb": 12.63,
-        "mean_strict_nll": 0.270747338,
-        "out": "~/kld/theirs/standard4"
-      }
-    },
-    "compares": {
-      "standard4__ours-fixture-vs-theirs": {
-        "kld_all": 0.079436,
-        "kld_to_first_eos": 0.095385,
-        "top1_all_pct": 90.62,
-        "top1_to_eos_pct": 85.77,
-        "nll_to_eos": 0.542159,
-        "positions": 2048,
-        "positions_to_eos": 956,
-        "student_kv": "affine8",
-        "per_prompt_kld_to_eos": {
-          "code-python-topological-sort": 0.018542,
-          "code-zig-byte-reader": 0.043165,
-          "prose-water-cycle": 0.122376,
-          "prose-navigation": 0.117519
-        }
-      },
-      "standard4__self-ours": {
-        "kld_all": 0,
-        "kld_to_first_eos": 0,
-        "top1_all_pct": 100,
-        "top1_to_eos_pct": 100,
-        "nll_to_eos": 0.447793,
-        "positions": 2048,
-        "positions_to_eos": 956,
-        "student_kv": "bf16",
-        "per_prompt_kld_to_eos": {
-          "code-python-topological-sort": 0,
-          "code-zig-byte-reader": 0,
-          "prose-water-cycle": 0,
-          "prose-navigation": 0
-        }
-      },
-      "standard4__self-theirs": {
-        "kld_all": 0,
-        "kld_to_first_eos": 0,
-        "top1_all_pct": 100,
-        "top1_to_eos_pct": 100,
-        "nll_to_eos": 0.309331,
-        "positions": 2048,
-        "positions_to_eos": 1286,
-        "student_kv": "bf16",
-        "per_prompt_kld_to_eos": {
-          "code-python-topological-sort": 0,
-          "code-zig-byte-reader": 0,
-          "prose-water-cycle": 0,
-          "prose-navigation": 0
-        }
-      },
-      "standard4__theirs-fixture-vs-ours": {
-        "kld_all": 0.072552,
-        "kld_to_first_eos": 0.075794,
-        "top1_all_pct": 92.09,
-        "top1_to_eos_pct": 91.45,
-        "nll_to_eos": 0.35395,
-        "positions": 2048,
-        "positions_to_eos": 1286,
-        "student_kv": "affine8",
-        "per_prompt_kld_to_eos": {
-          "code-python-topological-sort": 0.047778,
-          "code-zig-byte-reader": 0.037342,
-          "prose-water-cycle": 0.108157,
-          "prose-navigation": 0.127207
-        }
-      }
-    },
-    "wall_clock": "capture 2 x ~5 min; compare 4 x ~5-8 min; ~40 min of server downtime total"
-  },
-  "task_eval": {
-    "tool": "llmprobe 0.6.12 (Apache-2.0, github.com/ddalcu/llmprobe), run via npx",
-    "harness": "scripts/11-eval.sh (one deck), scripts/12-eval-table.py (render), scripts/13-eval-queue.sh (both packs, server swapped between jobs)",
-    "arms_pinned": {
-      "sampling": "greedy t=0 (llmprobe default, never overridden)",
-      "code": "--eval-suite code --reasoning medium",
-      "hard": "--eval-suite hard --reasoning xhigh",
-      "concurrency": 4,
-      "max_output_tokens_per_question": 16000,
-      "server": "--kv-quant 8 --mtp --ctx-size 131072 --qwen-gdn 16 --expert-pick-tolerance 0.3 (identical for both packs; only --model changes)"
-    },
-    "decks": {
-      "code": "100 JS functions = 50 HumanEval + 50 MBPP via MultiPL-E, graded by executing the function (node:vm, 3 s cap)",
-      "hard": "50 questions = 30 MMLU-Pro + 10 OlympiadBench + 5 LiveBench(zebra) + 5 NIST Juliet reductions, graded from the Answer: line",
-      "core": "92 = GPQA Diamond + SuperGPQA + AIME 2025 + COMPSEC (suites are not comparable to each other)"
-    },
-    "pilot_shared_engine": {
-      "run_utc": "2026-10-25T07:19Z",
-      "model": "initialed85/Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw",
-      "deck": "code",
-      "passed": 82,
-      "total": 100,
-      "by_source": [
-        {
-          "source": "HumanEval",
-          "passed": 48,
-          "failed": 2,
-          "stopped": 0,
-          "error": 0,
-          "total": 50
-        },
-        {
-          "source": "MBPP",
-          "passed": 34,
-          "failed": 16,
-          "stopped": 0,
-          "error": 0,
-          "total": 50
-        }
-      ],
-      "stopped_token_cap": 0,
-      "errors": 0,
-      "mean_output_tokens_per_question": 719.0,
-      "mean_reasoning_tokens_per_question": 619.9,
-      "wall_s": 1696.0,
-      "output_tokens": 71934,
-      "report_sha256": "46d3edb7eba29f26742252b81f86ad460c462fcc22876353e744ea74d45591f9",
-      "contamination": "engine shared with this agent's own inference traffic; scoring is latency-independent so the score stands, the cost columns are congested",
-      "status": "superseded by the dedicated-engine queue; kept as the receipt that sized the harness"
-    },
-    "clean_queue_status": "not run \u2014 handed to Ed to run (scripts/13-eval-queue.sh); the agent stopped its own in-flight run to free the box for Strata",
-    "what_a_row_measures": "the pack as served on this server (kv8, 16-lane GDN, 0.3 expert-pick tolerance included); not a weights-only number, not a teacher KLD",
-    "comparability": "llmprobe's own rules: suites are not comparable to each other; hard runs are not comparable to core runs; --sampling preset runs are not comparable to greedy runs. Two rows are comparable only with matching effort, output cap, kv-quant and MTP.",
-    "licences": {
-      "GPQA": "CC BY 4.0",
-      "SuperGPQA": "ODC-BY",
-      "AIME 2025 mirror": "MIT",
-      "MMLU-Pro": "Apache-2.0 (as redistributed by llmprobe)",
-      "OlympiadBench": "Apache-2.0 (as redistributed by llmprobe)",
-      "LiveBench": "Apache-2.0 (as redistributed by llmprobe)",
-      "NIST Juliet reductions": "CC0",
-      "MultiPL-E code deck": "MIT"
-    },
-    "redistribution": "aggregate scores only; prompt sets are not redistributed by this repo"
+ "measured_on": "2026-10-24, Mac mini M2 (Mac14,6), 64 GB, macOS 26.2, sushi 1.3.0",
+ "download": {
+  "source": "ukisai/Swift1.5-Qwen3.8-Flash-Next",
+  "duration_s": 6600,
+  "bytes": 360039201433,
+  "avg_throughput_mbps": 59,
+  "link": "hardline ethernet (en7, ~33 MB/s net per bmon on the serving run); ~12 MB/s on WiFi",
+  "workers": 4,
+  "resumable": true
+ },
+ "convert_wall_clock": {
+  "start": "2026-10-24T15:45:41+08:00",
+  "first_launch_aborted": "2026-10-24T15:45 (BadFlagValue: --experts-k 2.6)",
+  "restart": "2026-10-24T15:45:20+08:00",
+  "complete": "2026-10-24T23:46:51+08:00",
+  "wall_s": 28571,
+  "phases_s": {
+   "tokenizer_and_calibration": 120,
+   "trunk_affine_8bit": 420,
+   "ngram_table_4bit_g32": 600,
+   "expert_layers_48": 27000,
+   "mtp_lmhead_embed_vision_index": 660
   }
+ },
+ "per_layer_stage_medians_s": {
+  "read": 1.5,
+  "hessian": 81.7,
+  "prep": 79.3,
+  "factor": 0.0,
+  "wait": 2.2,
+  "scale": 88.2,
+  "feedback": 38.2,
+  "search": 354.4,
+  "pack": 0.4,
+  "sum": 646.1
+ },
+ "stage_hour_totals": {
+  "search": 4.75,
+  "scale": 1.18,
+  "hessian": 1.09,
+  "prep": 1.06,
+  "feedback": 0.49,
+  "other": 0.05,
+  "sum": 8.62
+ },
+ "per_layer_wall_minutes": {
+  "median": 9.4,
+  "min": 9.4,
+  "max": 9.5
+ },
+ "memory_peak": {
+  "convert_phase": {
+   "rss_gb": 33,
+   "wired_gb": 7
+  },
+  "mtp_phase": {
+   "rss_gb": 46,
+   "wired_gb": 45,
+   "mem_used_gb": 51.7,
+   "mem_free_gb": 9.0
+  },
+  "serving": {
+   "wired_gb": 46,
+   "mem_used_gb": 54.6,
+   "mem_free_gb": 1.6,
+   "caches_gb": 26.4
+  }
+ },
+ "disk": {
+  "before_download_gb": 524,
+  "after_download_gb": 165,
+  "minimum_during_convert_gb": 111,
+  "after_source_delete_gb": 451,
+  "peak_requirement_gb": 401,
+  "net_cost_gb": 74
+ },
+ "inference": {
+  "prefill_tok_s": 72.7,
+  "decode_tok_s": 45.1,
+  "smoke_test": {
+   "prompt": "Reply with exactly: PACK OK",
+   "output": "PACK OK",
+   "path": "mtp",
+   "prefill_tok_s": 42.0,
+   "decode_tok_s": 32.6,
+   "note": "18-token prompt, 2-token answer: rates on a 20-token exchange, not a steady-state figure"
+  },
+  "code_test": {
+   "prompt": "Write a Python function path_matches(pattern, path) supporting * and ? globs without using fnmatch. Give only the code.",
+   "tokens_streamed": "38 prompt + 269 generated",
+   "wall_s": 29.4,
+   "mtp_attempts": 89,
+   "mtp_accepts": 181,
+   "mtp_avg_per_round": 2.03,
+   "mtp_accept_pct": 81.5,
+   "mtp_depth": 6,
+   "verdict": "correct two-pointer star-backtrack glob matcher, no fnmatch"
+  },
+  "preflight": {
+   "weights_gb": 43.44,
+   "needs_gb": 45.69,
+   "available_gb": 58.0,
+   "fits": true
+  },
+  "kernels_observed": [
+   "exl3 n42 funnel arm=simdmat codebook=mcg dtype=float16 window=15",
+   "exl3-gemm simdgroup-matrix body n=42",
+   "gdn packed prework engaged Hk=16 Hv=48 S=17 B=1",
+   "gdn decode recur engaged S=1 Hk=16 Hv=48",
+   "attn-pd sushi_attn_pd qk=256 v=256 dispatches=1",
+   "mtp draft rerank engaged (3-bit coarse -> top-32 -> trunk re-score)",
+   "ngram speculative decoding engaged (mode=trellis)",
+   "prefill: hybrid scan, fused scan, chunked mmv (n42, window 15)"
+  ]
+ },
+ "serving_verified": {
+  "checked_utc": "2026-10-25T01:29Z",
+  "server_uptime_min": 14,
+  "v1_models": {
+   "id": "beamster/Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw",
+   "loaded": true,
+   "state": "ready",
+   "bytes_resident": 47539286008,
+   "bytes_on_disk": 47261601960,
+   "context_length": 131072,
+   "max_model_len": 131072,
+   "batched_decode": true,
+   "capabilities": [
+    "chat",
+    "tool_use",
+    "streaming",
+    "vision",
+    "reasoning",
+    "json_schema"
+   ]
+  },
+  "server_flags": "--mtp --mtp-min-depth 1 --mtp-max-depth 4 --mtp-typical 0.2 --mtp-greedy-tail --host 0.0.0.0 --port 8088 --prefix-cache-entries 4 --prefix-cache-mem 0 --prefix-cache-disk 8GB --max-concurrent 4 --kv-quant 8 --temp 1.0 --top-p 0.95 --top-k 20 --ctx-size 131072 --prefill-chunk 32768 --qwen-gdn 16 --expert-pick-tolerance 0.3 --metrics",
+  "system": {
+   "vm_memory_pressure": 0,
+   "system_wide_free_pct": 94,
+   "iogpu_wired_limit_mb": 60416,
+   "vm_stat_pages_free_gb": 0.1,
+   "note": "pages free is near zero by design on a serving 64 GB Mac; vm.memory_pressure 0 is the signal that matters"
+  }
+ },
+ "integrity": {
+  "shards": 52,
+  "tensors": 3069,
+  "index_entries": 3069,
+  "unresolved_index_entries": 0,
+  "payload_bytes_vs_on_disk": "equal",
+  "defects": 0
+ },
+ "sushi_list_verdict": {
+  "pack": "qwen3.8-flash-next:2.6bpw",
+  "published_size_gb": 73.7,
+  "this_mac": "fits",
+  "recommendation": "recommended for a 64 GB Mac (2bpw 64.8 / 2.6bpw 73.7 / 3bpw 79.1 / 4bpw 159.0 may-stream)"
+ },
+ "kld_divergence": {
+  "fixture": "standard4",
+  "captures": {
+   "ours": {
+    "elapsed_s": 307.6,
+    "peak_active_gb": 12.62,
+    "mean_strict_nll": 0.279402202,
+    "out": "~/kld/ours/standard4"
+   },
+   "theirs": {
+    "elapsed_s": 306.3,
+    "peak_active_gb": 12.63,
+    "mean_strict_nll": 0.270747338,
+    "out": "~/kld/theirs/standard4"
+   }
+  },
+  "compares": {
+   "standard4__ours-fixture-vs-theirs": {
+    "kld_all": 0.079436,
+    "kld_to_first_eos": 0.095385,
+    "top1_all_pct": 90.62,
+    "top1_to_eos_pct": 85.77,
+    "nll_to_eos": 0.542159,
+    "positions": 2048,
+    "positions_to_eos": 956,
+    "student_kv": "affine8",
+    "per_prompt_kld_to_eos": {
+     "code-python-topological-sort": 0.018542,
+     "code-zig-byte-reader": 0.043165,
+     "prose-water-cycle": 0.122376,
+     "prose-navigation": 0.117519
+    }
+   },
+   "standard4__self-ours": {
+    "kld_all": 0,
+    "kld_to_first_eos": 0,
+    "top1_all_pct": 100,
+    "top1_to_eos_pct": 100,
+    "nll_to_eos": 0.447793,
+    "positions": 2048,
+    "positions_to_eos": 956,
+    "student_kv": "bf16",
+    "per_prompt_kld_to_eos": {
+     "code-python-topological-sort": 0,
+     "code-zig-byte-reader": 0,
+     "prose-water-cycle": 0,
+     "prose-navigation": 0
+    }
+   },
+   "standard4__self-theirs": {
+    "kld_all": 0,
+    "kld_to_first_eos": 0,
+    "top1_all_pct": 100,
+    "top1_to_eos_pct": 100,
+    "nll_to_eos": 0.309331,
+    "positions": 2048,
+    "positions_to_eos": 1286,
+    "student_kv": "bf16",
+    "per_prompt_kld_to_eos": {
+     "code-python-topological-sort": 0,
+     "code-zig-byte-reader": 0,
+     "prose-water-cycle": 0,
+     "prose-navigation": 0
+    }
+   },
+   "standard4__theirs-fixture-vs-ours": {
+    "kld_all": 0.072552,
+    "kld_to_first_eos": 0.075794,
+    "top1_all_pct": 92.09,
+    "top1_to_eos_pct": 91.45,
+    "nll_to_eos": 0.35395,
+    "positions": 2048,
+    "positions_to_eos": 1286,
+    "student_kv": "affine8",
+    "per_prompt_kld_to_eos": {
+     "code-python-topological-sort": 0.047778,
+     "code-zig-byte-reader": 0.037342,
+     "prose-water-cycle": 0.108157,
+     "prose-navigation": 0.127207
+    }
+   }
+  },
+  "wall_clock": "capture 2 x ~5 min; compare 4 x ~5-8 min; ~40 min of server downtime total"
+ },
+ "task_eval": {
+  "tool": "llmprobe 0.6.12 (Apache-2.0, github.com/ddalcu/llmprobe), run via npx",
+  "harness": "scripts/11-eval.sh (one deck), scripts/12-eval-table.py (render), scripts/13-eval-queue.sh (both packs, server swapped between jobs)",
+  "arms_pinned": {
+   "sampling": "greedy t=0 (llmprobe default, never overridden)",
+   "code": "--eval-suite code --reasoning medium",
+   "hard": "--eval-suite hard --reasoning xhigh",
+   "concurrency": 2,
+   "max_output_tokens_per_question": 16000,
+   "server": "--kv-quant 8 --mtp --ctx-size 131072 --qwen-gdn 16 --expert-pick-tolerance 0.3 (identical for both packs; only --model changes)",
+   "concurrency_note": "half the server's --max-concurrent 4; deliberately under saturation (llmprobe applies no per-request timeout by design)"
+  },
+  "decks": {
+   "code": "100 JS functions = 50 HumanEval + 50 MBPP via MultiPL-E, graded by executing the function (node:vm, 3 s cap)",
+   "hard": "50 questions = 30 MMLU-Pro + 10 OlympiadBench + 5 LiveBench(zebra) + 5 NIST Juliet reductions, graded from the Answer: line",
+   "core": "92 = GPQA Diamond + SuperGPQA + AIME 2025 + COMPSEC (suites are not comparable to each other)"
+  },
+  "pilot_shared_engine": {
+   "run_utc": "2026-10-25T07:19Z",
+   "model": "initialed85/Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw",
+   "deck": "code",
+   "passed": 82,
+   "total": 100,
+   "by_source": [
+    {
+     "source": "HumanEval",
+     "passed": 48,
+     "failed": 2,
+     "stopped": 0,
+     "error": 0,
+     "total": 50
+    },
+    {
+     "source": "MBPP",
+     "passed": 34,
+     "failed": 16,
+     "stopped": 0,
+     "error": 0,
+     "total": 50
+    }
+   ],
+   "stopped_token_cap": 0,
+   "errors": 0,
+   "mean_output_tokens_per_question": 719.0,
+   "mean_reasoning_tokens_per_question": 619.9,
+   "wall_s": 1696.0,
+   "output_tokens": 71934,
+   "report_sha256": "46d3edb7eba29f26742252b81f86ad460c462fcc22876353e744ea74d45591f9",
+   "contamination": "engine shared with this agent's own inference traffic; scoring is latency-independent so the score stands, the cost columns are congested",
+   "status": "superseded by the dedicated-engine queue; kept as the receipt that sized the harness"
+  },
+  "clean_queue_status": "3 remaining jobs handed to Ed (theirs:code, ours:hard, theirs:hard); ours:code already landed (see clean_ours_code); queue skips completed jobs and restores production on our pack at the end",
+  "what_a_row_measures": "the pack as served on this server (kv8, 16-lane GDN, 0.3 expert-pick tolerance included); not a weights-only number, not a teacher KLD",
+  "comparability": "llmprobe's own rules: suites are not comparable to each other; hard runs are not comparable to core runs; --sampling preset runs are not comparable to greedy runs. Two rows are comparable only with matching effort, output cap, kv-quant and MTP.",
+  "licences": {
+   "GPQA": "CC BY 4.0",
+   "SuperGPQA": "ODC-BY",
+   "AIME 2025 mirror": "MIT",
+   "MMLU-Pro": "Apache-2.0 (as redistributed by llmprobe)",
+   "OlympiadBench": "Apache-2.0 (as redistributed by llmprobe)",
+   "LiveBench": "Apache-2.0 (as redistributed by llmprobe)",
+   "NIST Juliet reductions": "CC0",
+   "MultiPL-E code deck": "MIT"
+  },
+  "redistribution": "aggregate scores only; prompt sets are not redistributed by this repo",
+  "clean_ours_code": {
+   "run_utc": "2026-10-25T10:45Z",
+   "model": "initialed85/Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw",
+   "deck": "code",
+   "passed": 81,
+   "total": 100,
+   "by_source": [
+    {
+     "source": "HumanEval",
+     "passed": 48,
+     "failed": 2,
+     "total": 50
+    },
+    {
+     "source": "MBPP",
+     "passed": 33,
+     "failed": 17,
+     "total": 50
+    }
+   ],
+   "stopped_token_cap": 0,
+   "errors": 0,
+   "ungraded_empty_text": 3,
+   "ungraded_note": "3 cases (HumanEval_43, HumanEval_116, mbpp_765) returned output tokens but no extractable function text; llmprobe marks them passed=null and counts them as misses; a formatting/extraction miss, not a graded logic failure",
+   "mean_output_tokens_per_question": 663.0,
+   "mean_reasoning_tokens_per_question": 565.0,
+   "wall_s": 2089.0,
+   "output_tokens": 66332,
+   "report": "measurements/eval/initialed85_Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw__code-20261025T104500Z.json",
+   "report_sha256": "d94cfad16d8a362e321432a79f7621e00f7aa89199b2309f2f6c6a4f85eba366",
+   "contamination": "none measured \u2014 dedicated engine, no other inference during the run",
+   "status": "clean"
+  }
+ }
 }

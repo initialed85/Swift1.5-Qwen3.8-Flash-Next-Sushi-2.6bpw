@@ -293,7 +293,7 @@ through `pack-check.py`, skips jobs whose report already exists, and logs to
 `logs/eval-queue-<stamp>.log` + `logs/server-<stamp>.log`. Run it under `nohup caffeinate -is`.
 
 ```bash
-# the whole comparison, in a terminal you keep open (≈2.5 h, box dedicated):
+# the whole comparison, in a terminal you keep open (≈4–7 h, box dedicated):
 nohup caffeinate -is scripts/13-eval-queue.sh > logs/handrun-$(date -u +%FT%TZ).log 2>&1 &
 tail -f logs/eval-queue-*.log                        # watch it
 LEAVE_DOWN=1 JOBS="ours:code,theirs:code" scripts/13-eval-queue.sh   # code deck only, leave the server down at the end
@@ -309,15 +309,18 @@ running, a missing pack, or a pack that fails `pack-check.py` all make it refuse
 server.
 
 Arms are pinned and identical for both packs — only `--model` moves: greedy t=0 (llmprobe default,
-never overridden), effort `medium` for code / `xhigh` for hard, `--concurrency 4` (= the server's
-`--max-concurrent`), 16k output cap, server `--kv-quant 8 --mtp --qwen-gdn 16
---expert-pick-tolerance 0.3 --ctx-size 131072`. So a row measures the pack *as served here*, kv8
-penalty included; it is not a weights-only number and not a teacher KLD.
+never overridden), effort `medium` for code / `xhigh` for hard, `--concurrency 2` (half the server's
+`--max-concurrent` 4 — deliberately under saturation so the client can never hold the whole engine
+while it reads nothing; llmprobe deliberately applies no per-request timeout), 16k output cap,
+server `--kv-quant 8 --mtp --qwen-gdn 16 --expert-pick-tolerance 0.3 --ctx-size 131072`. So a row
+measures the pack *as served here*, kv8 penalty included; it is not a weights-only number and not
+a teacher KLD.
 
-Cost measured on this box: code deck, 100 questions, 28 min wall at concurrency 4 **with the engine
-shared by other inference** (71 934 output tokens; 719 mean output / 620 mean reasoning tokens per
-question). Budget ~1.5 h per pack for the hard deck (xhigh, 16k cap: MMLU-Pro ~30-60 s, Olympiad up
-to tens of minutes each). Four jobs ≈ 2.5 h of dedicated box.
+Cost measured on this box (dedicated, concurrency 2): code deck ≈ 50–70 min wall (the shared-engine
+pilot at concurrency 4 was 28 min / 71 934 output tokens, 719 mean output and 620 mean reasoning
+tokens per question — a *lower* wall time, so the concurrency-2 clean runs read slower but are
+pack-comparable). Budget 1.5–3 h per pack for the hard deck (xhigh, 16k cap: MMLU-Pro ~30-60 s,
+Olympiad up to tens of minutes each). Four jobs ≈ 4–7 h of dedicated box.
 
 Things that bite:
 

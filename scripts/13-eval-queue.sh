@@ -24,7 +24,7 @@ LOCK="$OUT/.queue.lock"
 PORT="${PORT:-8088}"
 BASE="http://127.0.0.1:$PORT"
 SUSHI_DIR="${SUSHI_DIR:-$HOME/sushi-macos-arm64}"
-CONCURRENCY="${CONCURRENCY:-4}"
+CONCURRENCY="${CONCURRENCY:-2}"
 MAX_TOKENS="${MAX_TOKENS:-16000}"
 LLP="${LLP:-0.6.12}"
 mkdir -p "$OUT" "$LOGDIR"
@@ -38,6 +38,8 @@ OURS_ID="initialed85/Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw"
 THEIRS_ID="beamster/Qwen3.8-Flash-Next-Sushi-2.6bpw"
 
 JOBS="${JOBS:-ours:hard,theirs:hard,theirs:code,ours:code}"
+# per-job budget; code decks burn ~20 min, hard decks at xhigh can burn ~2.5 h
+JOB_TIMEOUT_MIN="${JOB_TIMEOUT_MIN:-}"
 IFS=',' read -r -a JOBS_ARR <<< "$JOBS"
 
 log() { printf '[%s] %s\n' "$(date -u +%H:%M:%S)" "$*" | tee -a "$LOG"; }
@@ -120,6 +122,41 @@ sys.exit(0 if m and m[0].get('loaded') and m[0].get('state')=='ready' else 1)"; 
     sleep 5; t=$((t+5)); [ $t -ge 420 ] && { log "FATAL: pack did not reach ready in 420 s"; tail -20 "$LOGDIR/server-$STAMP.log" >>"$LOG"; exit 1; }
   done
   log "ready: $id (loaded, warm)"
+  # a ready-but-ill engine answers with empty completions (measured: 100 empties in 3 s)
+  for try_warm in 1 2; do
+    ok=1
+    for i in 1 2 3; do
+      t="$(curl -s -m 60 "$BASE/v1/completions" -H 'Content-Type: application/json' \
+        -d "{\"model\":\"$id\",\"prompt\":\"The quick brown fox\",\"max_tokens\":4,\"temperature\":0}" 2>/dev/null | python3 -c '
+import json,sys
+try: d=json.load(sys.stdin)
+except Exception: sys.exit(1)
+c=d["choices"][0]["text"]
+sys.exit(0 if c.strip() else 1)' && echo yes || echo no)"
+      [ "$t" = "yes" ] || { ok=0; break; }
+    done
+    [ $ok = 1 ] && break
+    if [ $try_warm = 1 ]; then
+      log "WARM CHECK FAILED: engine answered with no text; full restart (this is the failure mode that scores 0/100 in 3 s)"
+      "$HOME/stop-sushi.sh" >>"$LOG" 2>&1 || true
+      sleep 5
+      ( cd "$SUSHI_DIR" && MODEL="$dir/" nohup bash "$HOME/run-sushi.sh" >>"$LOGDIR/server-$STAMP.log" 2>&1 & )
+      local t2=0
+      until curl -s -m 5 "$BASE/v1/models" 2>/dev/null | python3 -c "
+import json,sys
+try: d=json.load(sys.stdin)
+except Exception: sys.exit(1)
+m=[x for x in d.get('data',[]) if x['id']=='$id']
+sys.exit(0 if m and m[0].get('loaded') and m[0].get('state')=='ready' else 1)" 2>/dev/null; do
+        sleep 5; t2=$((t2+5)); [ $t2 -ge 420 ] && { log "FATAL: restart did not reach ready"; exit 1; }
+      done
+      curl -s -m 180 "$BASE/v1/completions" -H 'Content-Type: application/json' \
+        -d "{\"model\":\"$id\",\"prompt\":\"hello\",\"max_tokens\":1,\"temperature\":0}" >/dev/null 2>&1 || true
+      continue
+    fi
+    log "FATAL: $id answers with empty completions after a full restart"; tail -30 "$LOGDIR/server-$STAMP.log" >>"$LOG"; exit 1
+  done
+  log "verified: $id is generating non-empty text"
 }
 
 i=0
@@ -135,9 +172,20 @@ for job in "${JOBS_ARR[@]}"; do
   log "job $i of ${#JOBS_ARR[@]}: $tag"
   serve "$dir" "$id"
   log "job $i: running suite=$suite model=$id"
+  case "$suite" in code) budget=90;; core) budget=360;; *) budget=300;; esac
+  [ -n "$JOB_TIMEOUT_MIN" ] && budget="$JOB_TIMEOUT_MIN"
+  wpid=""
+  ( sleep $((budget*60)); \
+    pids="$(pgrep -f "llmprobe@${LLP} ${BASE} -m ${id}" | tr '\n' ' ')"
+    if [ -n "$pids" ]; then
+      echo "[watchdog] job exceeded ${budget} min; SIGTERM: $pids" >&2
+      kill -TERM $pids 2>/dev/null || true
+    fi ) &
+  wpid=$!
   SUITE="$suite" CONCURRENCY="$CONCURRENCY" MAX_TOKENS="$MAX_TOKENS" LLP="$LLP" FORCE=1 \
     "$REPO/scripts/11-eval.sh" "$id" >>"$LOG" 2>&1
   rc=$?
+  [ -n "${wpid:-}" ] && kill "$wpid" 2>/dev/null || true
   if ls "$OUT/${tag}-"*.json >/dev/null 2>&1; then
     log "job $i: finished (rc=$rc) -> $(ls "$OUT/${tag}-"*.json | head -1)"
   else

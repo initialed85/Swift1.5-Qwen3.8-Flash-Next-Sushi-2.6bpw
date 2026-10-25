@@ -349,7 +349,7 @@ Arms, pinned, identical for both packs — only `--model` moves:
 llmprobe 0.6.12                 # the version beamster's card reports
 --eval-suite code|hard          # greedy t=0 (tool default)
 code: --reasoning medium        hard: --reasoning xhigh     # xhigh is what their card reports
---concurrency 4                 # = the server's --max-concurrent
+--concurrency 2                 # half the server's --max-concurrent 4; never sat
 --eval-max-tokens 16000         # = their card's cap
 server: --kv-quant 8 --mtp --ctx-size 131072 --qwen-gdn 16 --expert-pick-tolerance 0.3
 ```
@@ -358,16 +358,23 @@ So a pair of rows measures the pack *as served on this server*, kv8 penalty, 16-
 0.3 expert-pick tolerance included — which is what a user of this box gets, and is **not** a
 weights-only quality number and **not** a teacher KLD.
 
-**Pilot, with its contamination disclosed** ([receipt](measurements/eval/superseded/)): 100 code
-questions, greedy, effort medium — **82/100** (HumanEval 48/50, MBPP 34/50), 0 token-cap failures,
-0 engine errors, 620 mean reasoning tokens and 719 mean output tokens per question. That run shared
-the engine with this agent's own inference, so its *cost* columns (28 min wall) are the congested
-numbers; scoring is latency-independent, so 82 % is real. The clean four-job queue on a dedicated
-engine is `scripts/13-eval-queue.sh` (ours+theirs × hard+code), and its report replaces the pilot.
+**Clean, dedicated-engine result — ours, code deck:** 100 code questions, greedy, effort medium,
+default arms — **81/100** (HumanEval 48/50, MBPP 33/50), 0 token-cap failures, 0 engine errors,
+663 mean output / 565 mean reasoning tokens per question, 34.8 min wall. Three of the misses
+(HumanEval_43, HumanEval_116, mbpp_765) returned output tokens but no extractable function text,
+so llmprobe marks them `passed=null` and counts them as misses — a formatting/extraction miss,
+not a graded logic failure ([report](measurements/eval/initialed85_Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw__code-20261025T104500Z.json)).
+
+**Pilot, with its contamination disclosed** ([receipt](measurements/eval/superseded/)): the same
+deck at concurrency 4 **while the engine was shared with this agent's own inference** scored **82/100**
+(HumanEval 48/50, MBPP 34/50). Scoring is latency-independent, so the score stays credible; the
+cost columns (28 min wall) are the congested numbers. It is kept as the receipt that sized the
+harness, and is superseded by the dedicated run above. The remaining three jobs (theirs:code,
+ours:hard, theirs:hard) are `scripts/13-eval-queue.sh` and it skips the already-landed ours:code.
 
 MBPP is the weak half by construction, and llmprobe warns about exactly that: *"MBPP prompts are
 one-liners with no examples, so a model can write a correct function to a different reading. Ask
-for 100 % on this deck of a quantised model and you will be disappointed."* The 16 MBPP misses are
+for 100 % on this deck of a quantised model and you will be disappointed."* The ~16 MBPP misses are
 a floor for 2.6 bpw JavaScript, not a per-pack finding — the pack-vs-pack comparison is the point.
 
 Scores are aggregates only; the prompt sets are third-party corpora (GPQA CC BY 4.0, SuperGPQA
@@ -377,10 +384,10 @@ llmprobe, Juliet reductions CC0, MultiPL-E MIT) and are **not redistributed by t
 ```bash
 scripts/11-eval.sh <served-model-id>          # one deck against whatever the server serves
 scripts/12-eval-table.py measurements/eval    # arms-matched table from the saved reports
-scripts/13-eval-queue.sh                      # both packs x hard+code, unattended, ~2.5 h
+scripts/13-eval-queue.sh                      # both packs x hard+code, unattended, ~4–7 h
 CHECK=1 scripts/11-eval.sh ...                # print the command, run nothing
 
-# the run as handed over (dedicated box, ~2.5 h, restores our server when it finishes):
+# the run as handed over (dedicated box, ~4–7 h, restores our server when it finishes):
 nohup caffeinate -is scripts/13-eval-queue.sh > logs/handrun-$(date -u +%FT%TZ).log 2>&1 &
 tail -f logs/eval-queue-*.log
 # smaller slices, safe to ctrl-C, leaves the server down instead of restoring it:
