@@ -234,6 +234,10 @@ scripts/08-capture.sh             # KLD fixtures: capture fingerprints from both
 CHECK=1 scripts/08-capture.sh     #   plan-only dry run, no GPU work
 scripts/09-compare.sh             #   score every pack against every fixture, print measurements/kld/table.md
 scripts/10-kld-table.py           #   render compare JSONs as a markdown table
+scripts/11-eval.sh <model-id>      #  task-level eval (llmprobe) against the pack the server is serving
+CHECK=1 scripts/11-eval.sh ...     #   plan only; SUITE=code|hard|core, arms pinned per suite
+scripts/12-eval-table.py measurements/eval   # render eval reports as an arms-matched table
+scripts/13-eval-queue.sh           #   both packs x hard+code, swapping --model between jobs (~2.5 h)
 scripts/pack-check.py             #   is a pack dir loadable? (index vs shards) - run this first
 PRIVATE=1 scripts/publish.sh    ~/.sushi/models/initialed85/Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw
 ```
@@ -264,6 +268,77 @@ against base Qwen - so they are a divergence fingerprint, not a KLD-to-teacher, 
 are not comparable with the published 16x512 wikitext rows in sushi's docs. Our 16 prompts
 in `fixtures/prompts/` are original text, not the wikitext 16; `standard4` is the bundled
 two-code/two-prose screen.
+
+### Task-level eval (llmprobe) — the leg that wants the server UP
+
+`08`/`09` refuse a live server; the eval leg requires one, because it is a black-box test of the
+pack as served. Tool: `llmprobe` (`ddalcu/llmprobe`, Apache-2.0, npm) via `npx -y llmprobe@<ver>`;
+`scripts/11-eval.sh` pins 0.6.12 (the version beamster's card names), checks `/v1/models` and refuses
+if the server is serving something other than the model id it is given — measuring the wrong pack is
+how a bogus number reaches a card.
+
+```bash
+SUITE=code scripts/11-eval.sh <served-model-id>   # 100 JS functions, graded by executing them
+SUITE=hard scripts/11-eval.sh <served-model-id>   # 50 questions: MMLU-Pro / OlympiadBench / LiveBench / Juliet
+scripts/12-eval-table.py measurements/eval        # arms-matched table + per-source breakdown
+scripts/13-eval-queue.sh                          # ours:hard, theirs:hard, theirs:code, ours:code
+CHECK=1 scripts/13-eval-queue.sh                  # plan only
+```
+
+`13-eval-queue.sh` is the comparison run: per job it stops the server, restarts it on one pack with
+identical flags (`~/run-sushi.sh` with `MODEL=`), waits for `loaded=true state=ready` after a warm
+request, runs the deck, and at the end leaves the server serving our pack. It takes
+`measurements/eval/.queue.lock`, refuses while a `kld capture|compare` is running, gates both packs
+through `pack-check.py`, skips jobs whose report already exists, and logs to
+`logs/eval-queue-<stamp>.log` + `logs/server-<stamp>.log`. Run it under `nohup caffeinate -is`.
+
+```bash
+# the whole comparison, in a terminal you keep open (≈2.5 h, box dedicated):
+nohup caffeinate -is scripts/13-eval-queue.sh > logs/handrun-$(date -u +%FT%TZ).log 2>&1 &
+tail -f logs/eval-queue-*.log                        # watch it
+LEAVE_DOWN=1 JOBS="ours:code,theirs:code" scripts/13-eval-queue.sh   # code deck only, leave the server down at the end
+LEAVE_DOWN=1 JOBS="ours:hard" scripts/13-eval-queue.sh               # one job, stop any time with ctrl-C
+scripts/12-eval-table.py measurements/eval --csv measurements/eval/table.csv   # render when jobs land
+```
+
+By default the script's EXIT trap **restores the server on our pack**, even if you stop it partway,
+so the box is never left without inference; `LEAVE_DOWN=1` opts out of that (trap then only drops
+the lock). `JOBS="ours|theirs:[hard|code|core],..."` picks any subset in any order; a job whose
+report JSON exists is skipped, so a killed queue resumes where it stopped. A `kld capture|compare`
+running, a missing pack, or a pack that fails `pack-check.py` all make it refuse before touching the
+server.
+
+Arms are pinned and identical for both packs — only `--model` moves: greedy t=0 (llmprobe default,
+never overridden), effort `medium` for code / `xhigh` for hard, `--concurrency 4` (= the server's
+`--max-concurrent`), 16k output cap, server `--kv-quant 8 --mtp --qwen-gdn 16
+--expert-pick-tolerance 0.3 --ctx-size 131072`. So a row measures the pack *as served here*, kv8
+penalty included; it is not a weights-only number and not a teacher KLD.
+
+Cost measured on this box: code deck, 100 questions, 28 min wall at concurrency 4 **with the engine
+shared by other inference** (71 934 output tokens; 719 mean output / 620 mean reasoning tokens per
+question). Budget ~1.5 h per pack for the hard deck (xhigh, 16k cap: MMLU-Pro ~30-60 s, Olympiad up
+to tens of minutes each). Four jobs ≈ 2.5 h of dedicated box.
+
+Things that bite:
+
+- **An announced-but-unloaded server answers chat with nothing.** `/v1/models` replies as soon as the
+  process is up; the pack is resident later. Requests in that window return empty completions, llmprobe
+  scores 100 empty answers as 100 failures and exits 0 — a 0 % report in three seconds, indistinguishable
+  from a bad pack unless you check. `11-eval.sh` now gates on `loaded=true state=ready` and quarantines a
+  report whose cases produced no text (`measurements/eval/invalid/`, receipt kept).
+- `pgrep -f 'sushi serve'` matches any shell whose command line contains that string — mine did,
+  twice, and once it killed my own shell. Match the executable with `pgrep -x sushi` when the check
+  is about the server.
+- Check `reasoningEffortRejected` is `false` in the report, or the deck ran at an effort the server
+  ignored and the score is not the card's arms.
+- `--sampling` presets (t>0) are a different measurement and must never share a table with greedy
+  rows; `11-eval.sh` never passes `--sampling` and records `sampling: greedy t=0`.
+- Suites are not comparable to each other, and rows are only comparable when effort, cap, kv and MTP
+  match. The table prints the arms per row so the mismatch is visible.
+- Scores are aggregates. The decks are third-party corpora (licences recorded per run in
+  `*-manifest.json`: GPQA CC BY 4.0, SuperGPQA ODC-BY, AIME mirror MIT, MMLU-Pro/OlympiadBench/
+  LiveBench Apache-2.0 as redistributed by llmprobe, Juliet reductions CC0, MultiPL-E MIT) and are
+  not redistributed by this repo.
 
 ## Serving it (deliberately not automated)
 

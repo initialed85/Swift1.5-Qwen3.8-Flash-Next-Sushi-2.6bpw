@@ -326,6 +326,69 @@ scripts/09-compare.sh            # every pack x every fixture -> measurements/kl
 scripts/10-kld-table.py measurements/kld   # the table above
 ```
 
+### Task-level eval — the claim that needs no teacher
+
+The reading above is capped by hardware. Capability is not: it needs the server and the questions,
+not a 360 GB teacher. Packs are scored with **llmprobe** (`ddalcu/llmprobe`, Apache-2.0), which
+drives the OpenAI-compatible endpoint, runs everything at **temperature 0** (its default), and
+grades deterministically — execution for code, `Answer:`-line matching for the reasoning decks.
+
+| deck | what it is | grading |
+|---|---|---|
+| `--eval-suite code` | 100 JavaScript functions: 50 HumanEval + 50 MBPP (MultiPL-E ports) | **executes** the model's function against the ported asserts (`node:vm`, 3 s cap) |
+| `--eval-suite hard` | 50 questions: 30 MMLU-Pro, 10 OlympiadBench, 5 LiveBench (zebra), 5 NIST Juliet reductions | normalised `Answer:` line vs the published answer and its listed equivalent forms |
+| `--eval-suite core` | 92: GPQA Diamond, SuperGPQA, AIME 2025, COMPSEC | as above; **suites are not comparable to each other** (llmprobe's rule, quoted in its README) |
+
+The `hard` deck is the measurement behind beamster's card line *"LLMProbe Hard 50 — 88.0 %"*, so
+our number and theirs are the same test, and the source model's `medium` 0.2078 / `xhigh` 0.2980
+GPQA-Diamond figures are reachable with `--eval-suite core`.
+
+Arms, pinned, identical for both packs — only `--model` moves:
+
+```bash
+llmprobe 0.6.12                 # the version beamster's card reports
+--eval-suite code|hard          # greedy t=0 (tool default)
+code: --reasoning medium        hard: --reasoning xhigh     # xhigh is what their card reports
+--concurrency 4                 # = the server's --max-concurrent
+--eval-max-tokens 16000         # = their card's cap
+server: --kv-quant 8 --mtp --ctx-size 131072 --qwen-gdn 16 --expert-pick-tolerance 0.3
+```
+
+So a pair of rows measures the pack *as served on this server*, kv8 penalty, 16-lane GDN and
+0.3 expert-pick tolerance included — which is what a user of this box gets, and is **not** a
+weights-only quality number and **not** a teacher KLD.
+
+**Pilot, with its contamination disclosed** ([receipt](measurements/eval/superseded/)): 100 code
+questions, greedy, effort medium — **82/100** (HumanEval 48/50, MBPP 34/50), 0 token-cap failures,
+0 engine errors, 620 mean reasoning tokens and 719 mean output tokens per question. That run shared
+the engine with this agent's own inference, so its *cost* columns (28 min wall) are the congested
+numbers; scoring is latency-independent, so 82 % is real. The clean four-job queue on a dedicated
+engine is `scripts/13-eval-queue.sh` (ours+theirs × hard+code), and its report replaces the pilot.
+
+MBPP is the weak half by construction, and llmprobe warns about exactly that: *"MBPP prompts are
+one-liners with no examples, so a model can write a correct function to a different reading. Ask
+for 100 % on this deck of a quantised model and you will be disappointed."* The 16 MBPP misses are
+a floor for 2.6 bpw JavaScript, not a per-pack finding — the pack-vs-pack comparison is the point.
+
+Scores are aggregates only; the prompt sets are third-party corpora (GPQA CC BY 4.0, SuperGPQA
+ODC-BY, AIME 2025 mirror MIT, MMLU-Pro / OlympiadBench / LiveBench Apache-2.0 as redistributed by
+llmprobe, Juliet reductions CC0, MultiPL-E MIT) and are **not redistributed by this repo**.
+
+```bash
+scripts/11-eval.sh <served-model-id>          # one deck against whatever the server serves
+scripts/12-eval-table.py measurements/eval    # arms-matched table from the saved reports
+scripts/13-eval-queue.sh                      # both packs x hard+code, unattended, ~2.5 h
+CHECK=1 scripts/11-eval.sh ...                # print the command, run nothing
+
+# the run as handed over (dedicated box, ~2.5 h, restores our server when it finishes):
+nohup caffeinate -is scripts/13-eval-queue.sh > logs/handrun-$(date -u +%FT%TZ).log 2>&1 &
+tail -f logs/eval-queue-*.log
+# smaller slices, safe to ctrl-C, leaves the server down instead of restoring it:
+LEAVE_DOWN=1 JOBS="ours:code,theirs:code" scripts/13-eval-queue.sh
+LEAVE_DOWN=1 JOBS="ours:hard" scripts/13-eval-queue.sh
+scripts/12-eval-table.py measurements/eval --csv measurements/eval/table.csv
+```
+
 The bar to beat, from sushi's own tables
 ([`docs/qwen4-kld.md`](https://github.com/beamivalice/sushi/blob/main/docs/qwen4-kld.md)):
 

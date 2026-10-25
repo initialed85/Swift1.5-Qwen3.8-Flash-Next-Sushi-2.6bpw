@@ -291,5 +291,6 @@
       "bytes_on_disk": 47261601960
     },
     "completion_probe": "prompt 'The capital of France is' -> ' Paris.' (8 tokens, temp 0)"
-  }
+  },
+  "measurements_task_eval": "see measurements.json task_eval; harness scripts/11,12,13; clean queue to be run by Ed"
 }

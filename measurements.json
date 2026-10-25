@@ -241,5 +241,70 @@
       }
     },
     "wall_clock": "capture 2 x ~5 min; compare 4 x ~5-8 min; ~40 min of server downtime total"
+  },
+  "task_eval": {
+    "tool": "llmprobe 0.6.12 (Apache-2.0, github.com/ddalcu/llmprobe), run via npx",
+    "harness": "scripts/11-eval.sh (one deck), scripts/12-eval-table.py (render), scripts/13-eval-queue.sh (both packs, server swapped between jobs)",
+    "arms_pinned": {
+      "sampling": "greedy t=0 (llmprobe default, never overridden)",
+      "code": "--eval-suite code --reasoning medium",
+      "hard": "--eval-suite hard --reasoning xhigh",
+      "concurrency": 4,
+      "max_output_tokens_per_question": 16000,
+      "server": "--kv-quant 8 --mtp --ctx-size 131072 --qwen-gdn 16 --expert-pick-tolerance 0.3 (identical for both packs; only --model changes)"
+    },
+    "decks": {
+      "code": "100 JS functions = 50 HumanEval + 50 MBPP via MultiPL-E, graded by executing the function (node:vm, 3 s cap)",
+      "hard": "50 questions = 30 MMLU-Pro + 10 OlympiadBench + 5 LiveBench(zebra) + 5 NIST Juliet reductions, graded from the Answer: line",
+      "core": "92 = GPQA Diamond + SuperGPQA + AIME 2025 + COMPSEC (suites are not comparable to each other)"
+    },
+    "pilot_shared_engine": {
+      "run_utc": "2026-10-25T07:19Z",
+      "model": "initialed85/Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw",
+      "deck": "code",
+      "passed": 82,
+      "total": 100,
+      "by_source": [
+        {
+          "source": "HumanEval",
+          "passed": 48,
+          "failed": 2,
+          "stopped": 0,
+          "error": 0,
+          "total": 50
+        },
+        {
+          "source": "MBPP",
+          "passed": 34,
+          "failed": 16,
+          "stopped": 0,
+          "error": 0,
+          "total": 50
+        }
+      ],
+      "stopped_token_cap": 0,
+      "errors": 0,
+      "mean_output_tokens_per_question": 719.0,
+      "mean_reasoning_tokens_per_question": 619.9,
+      "wall_s": 1696.0,
+      "output_tokens": 71934,
+      "report_sha256": "46d3edb7eba29f26742252b81f86ad460c462fcc22876353e744ea74d45591f9",
+      "contamination": "engine shared with this agent's own inference traffic; scoring is latency-independent so the score stands, the cost columns are congested",
+      "status": "superseded by the dedicated-engine queue; kept as the receipt that sized the harness"
+    },
+    "clean_queue_status": "not run \u2014 handed to Ed to run (scripts/13-eval-queue.sh); the agent stopped its own in-flight run to free the box for Strata",
+    "what_a_row_measures": "the pack as served on this server (kv8, 16-lane GDN, 0.3 expert-pick tolerance included); not a weights-only number, not a teacher KLD",
+    "comparability": "llmprobe's own rules: suites are not comparable to each other; hard runs are not comparable to core runs; --sampling preset runs are not comparable to greedy runs. Two rows are comparable only with matching effort, output cap, kv-quant and MTP.",
+    "licences": {
+      "GPQA": "CC BY 4.0",
+      "SuperGPQA": "ODC-BY",
+      "AIME 2025 mirror": "MIT",
+      "MMLU-Pro": "Apache-2.0 (as redistributed by llmprobe)",
+      "OlympiadBench": "Apache-2.0 (as redistributed by llmprobe)",
+      "LiveBench": "Apache-2.0 (as redistributed by llmprobe)",
+      "NIST Juliet reductions": "CC0",
+      "MultiPL-E code deck": "MIT"
+    },
+    "redistribution": "aggregate scores only; prompt sets are not redistributed by this repo"
   }
 }
