@@ -52,7 +52,7 @@ fi
 # 1) create the repo (private by default — flip with hf repo-update when you're happy with it)
 repo_exists() { curl -sf "https://huggingface.co/api/models/$REPO" >/dev/null; }
 if ! repo_exists; then
-  if [[ "$PRIVATE" == 1 ]]; then "$HF" repo-create "$REPO" --type model --private; else "$HF" repo-create "$REPO" --type model; fi
+  if [[ "$PRIVATE" == 1 ]]; then "$HF" repos create "$REPO" --type model --private; else "$HF" repos create "$REPO" --type model; fi
   echo "created $REPO"
 fi
 
@@ -108,5 +108,5 @@ print(f"https://huggingface.co/{repo}")
 print("weights OK" if not missing and not mismatch else "INCOMPLETE — re-run publish.sh (it resumes per-file)")
 PY
 echo
-echo "flip public when ready:  hf repo-update $REPO --no-private"
+echo "flip public when ready:  hf repos settings $REPO --no-private"
 echo "note: sushi 'pull' only works for the beamster org; advertise 'run' and 'hf download'."
