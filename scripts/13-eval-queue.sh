@@ -44,6 +44,18 @@ IFS=',' read -r -a JOBS_ARR <<< "$JOBS"
 
 log() { printf '[%s] %s\n' "$(date -u +%H:%M:%S)" "$*" | tee -a "$LOG"; }
 
+# /v1/models lists EVERY pack the server knows, loaded or not, so grepping the payload for an id
+# proves nothing (measured: ours was listed there at loaded=False while beamster was the one serving).
+# served_id prints the id that is actually resident; serving <id> is the loaded+ready test.
+served_id() { curl -s -m 5 "$BASE/v1/models" 2>/dev/null | python3 -c '
+import json,sys
+try: d=json.load(sys.stdin)
+except Exception: sys.exit(1)
+for e in d.get("data",[]):
+    if e.get("loaded") and e.get("state")=="ready": print(e["id"]); break
+' 2>/dev/null; }
+serving() { served_id | grep -qx "$1"; }
+
 plan() {
   local i=0
   for j in "${JOBS_ARR[@]}"; do
@@ -75,8 +87,8 @@ restore_production() {  # never leave the box with no server serving our pack
     log "EXIT TRAP: LEAVE_DOWN=1, leaving the server as-is (start it with ~/run-sushi.sh)"
     rm -f "$LOCK"; return 0
   fi
-  if ! curl -s -m 3 "$BASE/v1/models" 2>/dev/null | grep -q "$OURS_ID"; then
-    log "EXIT TRAP: server is not serving $OURS_ID; restarting it"
+  if ! serving "$OURS_ID"; then
+    log "EXIT TRAP: $OURS_ID is not resident and ready; restarting it"
     ( cd "$SUSHI_DIR" && MODEL="$OURS_DIR/" nohup bash "$HOME/run-sushi.sh" >>"$LOGDIR/server-$STAMP.log" 2>&1 & )
     sleep 20
   fi
@@ -125,7 +137,7 @@ sys.exit(0 if m and m[0].get('loaded') and m[0].get('state')=='ready' else 1)"; 
   # a ready-but-ill engine answers with empty completions (measured: 100 empties in 3 s)
   for try_warm in 1 2; do
     ok=1
-    for i in 1 2 3; do
+    for probe in 1 2 3; do   # NOT i: this would clobber the outer job counter and mislabel the log
       t="$(curl -s -m 60 "$BASE/v1/completions" -H 'Content-Type: application/json' \
         -d "{\"model\":\"$id\",\"prompt\":\"The quick brown fox\",\"max_tokens\":4,\"temperature\":0}" 2>/dev/null | python3 -c '
 import json,sys
@@ -196,9 +208,9 @@ done
 # leave production as it was: serving our pack
 final_id="$OURS_ID"; final_dir="$OURS_DIR"
 last="${JOBS_ARR[${#JOBS_ARR[@]}-1]}"; [ "${last%%:*}" = "theirs" ] && { final_id="$THEIRS_ID"; final_dir="$THEIRS_DIR"; }
-if ! curl -s -m 5 "$BASE/v1/models" 2>/dev/null | grep -q "$OURS_ID"; then
-  log "restoring server to $OURS_ID"
+if ! serving "$OURS_ID"; then
+  log "restoring server to $OURS_ID (it was not resident and ready)"
   serve "$OURS_DIR" "$OURS_ID"
 fi
-log "queue complete; server serving $(curl -s -m 5 "$BASE/v1/models" | python3 -c 'import json,sys;print(json.load(sys.stdin)["data"][0]["id"])' 2>/dev/null)"
+log "queue complete; server serving $(served_id)"
 log "render with: scripts/12-eval-table.py measurements/eval"

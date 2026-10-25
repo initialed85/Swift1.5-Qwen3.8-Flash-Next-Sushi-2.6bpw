@@ -339,9 +339,10 @@ grades deterministically — execution for code, `Answer:`-line matching for the
 | `--eval-suite hard` | 50 questions: 30 MMLU-Pro, 10 OlympiadBench, 5 LiveBench (zebra), 5 NIST Juliet reductions | normalised `Answer:` line vs the published answer and its listed equivalent forms |
 | `--eval-suite core` | 92: GPQA Diamond, SuperGPQA, AIME 2025, COMPSEC | as above; **suites are not comparable to each other** (llmprobe's rule, quoted in its README) |
 
-The `hard` deck is the measurement behind beamster's card line *"LLMProbe Hard 50 — 88.0 %"*, so
-our number and theirs are the same test, and the source model's `medium` 0.2078 / `xhigh` 0.2980
-GPQA-Diamond figures are reachable with `--eval-suite core`.
+The `hard` deck is the same test behind beamster's card line *"LLMProbe Hard 50 — 88.0 %"*, which
+matters because it is the only claim of that kind we could check against someone else's pack —
+and it is **not reproduced here** (their pack, our server, arms below: 72.0 %). The source model's
+`medium` 0.2078 / `xhigh` 0.2980 GPQA-Diamond figures are reachable with `--eval-suite core`.
 
 Arms, pinned, identical for both packs — only `--model` moves:
 
@@ -358,19 +359,45 @@ So a pair of rows measures the pack *as served on this server*, kv8 penalty, 16-
 0.3 expert-pick tolerance included — which is what a user of this box gets, and is **not** a
 weights-only quality number and **not** a teacher KLD.
 
-**Clean, dedicated-engine result — ours, code deck:** 100 code questions, greedy, effort medium,
-default arms — **81/100** (HumanEval 48/50, MBPP 33/50), 0 token-cap failures, 0 engine errors,
-663 mean output / 565 mean reasoning tokens per question, 34.8 min wall. Three of the misses
-(HumanEval_43, HumanEval_116, mbpp_765) returned output tokens but no extractable function text,
-so llmprobe marks them `passed=null` and counts them as misses — a formatting/extraction miss,
-not a graded logic failure ([report](measurements/eval/initialed85_Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw__code-20261025T104500Z.json)).
+### The four rows, all on arms that match each other
+
+Every row below is greedy t=0, effort medium on code / xhigh on hard, `--concurrency 2`, 16 k output
+cap, and the same server flags (`--kv-quant 8 --mtp --qwen-gdn 16 --expert-pick-tolerance 0.3 …`) —
+**only `--model` changes between rows**, so a pair of rows in the same deck is a like-for-like
+comparison. Full arms and cost per row are in the `*-manifest.json` files next to each report
+(render them with `scripts/12-eval-table.py measurements/eval`).
+
+| pack | code (100) | HumanEval / MBPP | hard (50) | MMLU-Pro / Olympiad / LiveBench / Juliet | wall |
+|---|---|---|---|---|---|
+| **ours** (`initialed85/…-Sushi-2.6bpw`) | **81/100** | 48/50 · 33/50 | **36/50** | 28/30 · **0/10** · 3/5 · 5/5 | 35 min · 87 min |
+| **theirs** (`beamster/Qwen3.8-Flash-Next-Sushi-2.6bpw`) | **86/100** | 49/50 · 37/50 | **36/50** | 27/30 · **0/10** · 4/5 · 5/5 | 100 min · 130 min |
+
+What that says, in the plainest terms I can defend:
+
+- **On the code deck our pack is 5 questions behind theirs** (81 vs 86; the whole gap sits in MBPP,
+  33 vs 37 — HumanEval is 48 vs 49). This is a *served* result on this box at 2.6 bpw + kv8, not a
+  statement about whose weights are better, but it is a real regression of our conversion against
+  theirs on the one axis where both packs are being compared, and the card says so.
+- **On the hard deck the two packs tie at 36/50**, and the tie is not clean: ours wins MMLU-Pro by 1,
+  loses LiveBench by 1, and both are identical on Juliet (5/5).
+- **OlympiadBench is 0/10 for BOTH packs**, so that sub-deck carries no discriminating signal here.
+  The reason is not that the models cannot attempt it: all 10 cases generated **1 503–16 000 tokens
+  of reasoning and then no `Answer:` line at all** (9 stopped, 1 hit the cap). That is a genuine
+  answer-emission failure of both packs at these arms, and it caps both hard scores by up to 10
+  questions. A hard-deck number quoted from this box without that caveat is misleading.
+- **beamster's card claims "LLMProbe Hard 50 — 88.0 %".** With *their* pack, on *our* server, at the
+  arms above, we measure **72.0 %** (36/50). Their claim is not reproduced here — most plausibly
+  because their run used different serving flags, effort or deck revision than ours, which is exactly
+  why the arms columns have to be read before comparing rows. I am not claiming either number is
+  wrong; I am claiming they are not the same measurement.
+- Run-to-run spread: the same pack, deck and arms scored 82/100 and 81/100 (pilot vs clean), so
+  **±1/100 is noise, not a finding**. The 5-question code gap is 5× that band, so it is a real gap.
 
 **Pilot, with its contamination disclosed** ([receipt](measurements/eval/superseded/)): the same
-deck at concurrency 4 **while the engine was shared with this agent's own inference** scored **82/100**
-(HumanEval 48/50, MBPP 34/50). Scoring is latency-independent, so the score stays credible; the
-cost columns (28 min wall) are the congested numbers. It is kept as the receipt that sized the
-harness, and is superseded by the dedicated run above. The remaining three jobs (theirs:code,
-ours:hard, theirs:hard) are `scripts/13-eval-queue.sh` and it skips the already-landed ours:code.
+code deck at concurrency 4 **while the engine was shared with this agent's own inference** scored
+**82/100** (HumanEval 48/50, MBPP 34/50). Scoring is latency-independent, so the score stays credible;
+the cost columns (28 min wall) are the congested numbers. Kept as the receipt that sized the harness,
+superseded by the dedicated 81/100 row above.
 
 MBPP is the weak half by construction, and llmprobe warns about exactly that: *"MBPP prompts are
 one-liners with no examples, so a model can write a correct function to a different reading. Ask

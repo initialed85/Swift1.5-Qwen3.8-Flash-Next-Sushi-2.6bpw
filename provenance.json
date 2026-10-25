@@ -292,5 +292,5 @@
   },
   "completion_probe": "prompt 'The capital of France is' -> ' Paris.' (8 tokens, temp 0)"
  },
- "measurements_task_eval": "see measurements.json task_eval; harness scripts/11,12,13; ours:code clean landed 81/100 (dedicated engine, report in measurements/eval/); remaining 3 jobs (theirs:code, ours:hard, theirs:hard) handed to Ed"
+ "measurements_task_eval": "measurements.json task_eval.clean_rows; four rows, arms matched (greedy t=0, effort medium code / xhigh hard, concurrency 2, cap 16000, same server flags, only --model changes): ours code 81/100, theirs code 86/100, ours hard 36/50, theirs hard 36/50. OlympiadBench 0/10 on BOTH packs (reasoned, no Answer: line) so that sub-deck has no discriminating signal; beamster's claimed Hard-50 88.0 % measures 72.0 % with their pack on this server. invalid/ holds one 0/100 artifact (0 generated tokens); superseded/ holds the shared-engine 82/100 pilot."
 }

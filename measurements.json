@@ -339,6 +339,229 @@
    "contamination": "none measured \u2014 dedicated engine, no other inference during the run",
    "status": "clean",
    "empty_text_note": "3 of the 19 graded failures returned output tokens but no extractable function text (HumanEval_43_pairs_sum_to_zero, HumanEval_116_sort_array, mbpp_765_is_polite); llmprobe grades them status=failed like any other miss, so they are counted as misses, not as ungraded. Per-case verdicts live in the `status` field (81 passed / 19 failed), which reconciles exactly with bySource."
-  }
+  },
+  "clean_rows": {
+   "theirs:code": {
+    "model": "beamster/Qwen3.8-Flash-Next-Sushi-2.6bpw",
+    "suite": "code",
+    "arms": {
+     "sampling": "greedy t=0 (llmprobe default)",
+     "reasoning_effort": "medium",
+     "concurrency": 2,
+     "max_output_tokens_per_question": 16000,
+     "server_flags": "./sushi serve --mtp --mtp-min-depth 1 --mtp-max-depth 2 --mtp-typical 0.1 --host 0.0.0.0 --port 8088 --prefix-cache-entries 4 --prefix-cache-mem 8GB --prefix-cache-disk 0 --max-concurrent 4 --kv-quant 8 --temp 0.2 --top-p 0.95 --top-k 20 --ctx-size 131072 --prefill-chunk 8192 --qwen-gdn 16 --expert-pick-tolerance 0.3 --metrics --model /Users/edwardbeech/.sushi/models/beamster/Qwen3.8-Flash-Next-Sushi-2.6bpw/"
+    },
+    "score": {
+     "passed": 86,
+     "total": 100,
+     "stopped_token_cap": 0,
+     "errors": 0,
+     "by_source": [
+      {
+       "source": "HumanEval",
+       "passed": 49,
+       "failed": 1,
+       "stopped": 0,
+       "error": 0,
+       "total": 50
+      },
+      {
+       "source": "MBPP",
+       "passed": 37,
+       "failed": 13,
+       "stopped": 0,
+       "error": 0,
+       "total": 50
+      }
+     ]
+    },
+    "cost": {
+     "duration_s": 6018.6,
+     "output_tokens": 165338,
+     "input_tokens": 15809,
+     "mean_output_tokens_per_question": 1653.4,
+     "mean_reasoning_tokens_per_question": 1544.3
+    },
+    "report": "measurements/eval/beamster_Qwen3.8-Flash-Next-Sushi-2.6bpw__code-20261025T162909Z",
+    "report_sha256": "d3a5d8b4eef78e546212deb2367c8aad9a54acff613c43b4e9f22c998084d71b",
+    "measured_utc": "20261025T162909Z",
+    "cases_without_final_text": 3,
+    "cases_without_generation": 0
+   },
+   "theirs:hard": {
+    "model": "beamster/Qwen3.8-Flash-Next-Sushi-2.6bpw",
+    "suite": "hard",
+    "arms": {
+     "sampling": "greedy t=0 (llmprobe default)",
+     "reasoning_effort": "xhigh",
+     "concurrency": 2,
+     "max_output_tokens_per_question": 16000,
+     "server_flags": "./sushi serve --mtp --mtp-min-depth 1 --mtp-max-depth 2 --mtp-typical 0.1 --host 0.0.0.0 --port 8088 --prefix-cache-entries 4 --prefix-cache-mem 8GB --prefix-cache-disk 0 --max-concurrent 4 --kv-quant 8 --temp 0.2 --top-p 0.95 --top-k 20 --ctx-size 131072 --prefill-chunk 8192 --qwen-gdn 16 --expert-pick-tolerance 0.3 --metrics --model /Users/edwardbeech/.sushi/models/beamster/Qwen3.8-Flash-Next-Sushi-2.6bpw/"
+    },
+    "score": {
+     "passed": 36,
+     "total": 50,
+     "stopped_token_cap": 1,
+     "errors": 0,
+     "by_source": [
+      {
+       "source": "MMLU-Pro",
+       "passed": 27,
+       "failed": 2,
+       "stopped": 1,
+       "error": 0,
+       "total": 30
+      },
+      {
+       "source": "OlympiadBench",
+       "passed": 0,
+       "failed": 10,
+       "stopped": 0,
+       "error": 0,
+       "total": 10
+      },
+      {
+       "source": "LiveBench",
+       "passed": 4,
+       "failed": 1,
+       "stopped": 0,
+       "error": 0,
+       "total": 5
+      },
+      {
+       "source": "NIST Juliet",
+       "passed": 5,
+       "failed": 0,
+       "stopped": 0,
+       "error": 0,
+       "total": 5
+      }
+     ]
+    },
+    "cost": {
+     "duration_s": 7792.0,
+     "output_tokens": 189870,
+     "input_tokens": 15283,
+     "mean_output_tokens_per_question": 3797.4,
+     "mean_reasoning_tokens_per_question": 3720.8
+    },
+    "report": "measurements/eval/beamster_Qwen3.8-Flash-Next-Sushi-2.6bpw__hard-20261025T123953Z",
+    "report_sha256": "a61badf3c71a82f8110f1297561531470ed2cee9106713bc02af6cab5cffaf66",
+    "measured_utc": "20261025T123953Z",
+    "cases_without_final_text": 13,
+    "cases_without_generation": 0
+   },
+   "ours:code": {
+    "model": "initialed85/Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw",
+    "suite": "code",
+    "arms": {
+     "sampling": "greedy t=0 (llmprobe default)",
+     "reasoning_effort": "medium",
+     "concurrency": 2,
+     "max_output_tokens_per_question": 16000,
+     "server_flags": "./sushi serve --mtp --mtp-min-depth 1 --mtp-max-depth 2 --mtp-typical 0.1 --host 0.0.0.0 --port 8088 --prefix-cache-entries 4 --prefix-cache-mem 8GB --prefix-cache-disk 0 --max-concurrent 4 --kv-quant 8 --temp 0.2 --top-p 0.95 --top-k 20 --ctx-size 131072 --prefill-chunk 8192 --qwen-gdn 16 --expert-pick-tolerance 0.3 --metrics --model /Users/edwardbeech/.sushi/models/initialed85/Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw/"
+    },
+    "score": {
+     "passed": 81,
+     "total": 100,
+     "stopped_token_cap": 0,
+     "errors": 0,
+     "by_source": [
+      {
+       "source": "HumanEval",
+       "passed": 48,
+       "failed": 2,
+       "stopped": 0,
+       "error": 0,
+       "total": 50
+      },
+      {
+       "source": "MBPP",
+       "passed": 33,
+       "failed": 17,
+       "stopped": 0,
+       "error": 0,
+       "total": 50
+      }
+     ]
+    },
+    "cost": {
+     "duration_s": 2088.9,
+     "output_tokens": 66332,
+     "input_tokens": 15809,
+     "mean_output_tokens_per_question": 663.3,
+     "mean_reasoning_tokens_per_question": 565.0
+    },
+    "report": "measurements/eval/initialed85_Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw__code-20261025T104500Z",
+    "report_sha256": "d94cfad16d8a362e321432a79f7621e00f7aa89199b2309f2f6c6a4f85eba366",
+    "measured_utc": "20261025T104500Z",
+    "cases_without_final_text": 3,
+    "cases_without_generation": 0
+   },
+   "ours:hard": {
+    "model": "initialed85/Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw",
+    "suite": "hard",
+    "arms": {
+     "sampling": "greedy t=0 (llmprobe default)",
+     "reasoning_effort": "xhigh",
+     "concurrency": 2,
+     "max_output_tokens_per_question": 16000,
+     "server_flags": "./sushi serve --mtp --mtp-min-depth 1 --mtp-max-depth 2 --mtp-typical 0.1 --host 0.0.0.0 --port 8088 --prefix-cache-entries 4 --prefix-cache-mem 8GB --prefix-cache-disk 0 --max-concurrent 4 --kv-quant 8 --temp 0.2 --top-p 0.95 --top-k 20 --ctx-size 131072 --prefill-chunk 8192 --qwen-gdn 16 --expert-pick-tolerance 0.3 --metrics --model /Users/edwardbeech/.sushi/models/initialed85/Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw/"
+    },
+    "score": {
+     "passed": 36,
+     "total": 50,
+     "stopped_token_cap": 2,
+     "errors": 0,
+     "by_source": [
+      {
+       "source": "MMLU-Pro",
+       "passed": 28,
+       "failed": 1,
+       "stopped": 1,
+       "error": 0,
+       "total": 30
+      },
+      {
+       "source": "OlympiadBench",
+       "passed": 0,
+       "failed": 9,
+       "stopped": 1,
+       "error": 0,
+       "total": 10
+      },
+      {
+       "source": "LiveBench",
+       "passed": 3,
+       "failed": 2,
+       "stopped": 0,
+       "error": 0,
+       "total": 5
+      },
+      {
+       "source": "NIST Juliet",
+       "passed": 5,
+       "failed": 0,
+       "stopped": 0,
+       "error": 0,
+       "total": 5
+      }
+     ]
+    },
+    "cost": {
+     "duration_s": 5240.3,
+     "output_tokens": 154423,
+     "input_tokens": 15283,
+     "mean_output_tokens_per_question": 3088.5,
+     "mean_reasoning_tokens_per_question": 3001.5
+    },
+    "report": "measurements/eval/initialed85_Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw__hard-20261025T111157Z",
+    "report_sha256": "fc508d22e133616184c6720925d7344a4fa543e16be4eaccccc24d440bccc005",
+    "measured_utc": "20261025T111157Z",
+    "cases_without_final_text": null,
+    "cases_without_generation": null
+   }
+  },
+  "comparability_note": "all four rows share effort (medium code / xhigh hard), cap 16000, concurrency 2, greedy t=0 and the same server flags; only --model changes. Scores are latency-independent, so the shared-engine pilot's 82/100 and the clean 81/100 differ by 1/100 = the run-to-run band, not a finding. The Olympiad 0/10 on BOTH packs means that sub-deck carries no discriminating signal at these arms: both packs reason for 1.5k-16k tokens and emit no Answer: line. beamster's card claims LLMProbe Hard 50 = 88.0 %; we measure 36/50 with their pack on our server, so their claim is not reproduced under these arms (their serving flags/effort are not ours)."
  }
 }

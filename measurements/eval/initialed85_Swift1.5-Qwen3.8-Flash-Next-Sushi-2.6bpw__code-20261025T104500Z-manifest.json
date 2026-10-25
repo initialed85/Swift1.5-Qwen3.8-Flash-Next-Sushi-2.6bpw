@@ -1,0 +1,69 @@
+{
+  "schema": "swift15-eval-v1",
+  "tool": "llmprobe",
+  "tool_version": "0.6.12",
+  "tool_license": "Apache-2.0 (ddalcu/llmprobe)",
+  "report_sha256": "d94cfad16d8a362e321432a79f7621e00f7aa89199b2309f2f6c6a4f85eba366",
+  "model": "initialed85/Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw",
+  "suite": "code",
+  "arms": {
+    "sampling": "greedy t=0 (llmprobe default)",
+    "reasoning_effort": "medium",
+    "concurrency": 2,
+    "max_output_tokens_per_question": 16000,
+    "server_flags": "./sushi serve --mtp --mtp-min-depth 1 --mtp-max-depth 2 --mtp-typical 0.1 --host 0.0.0.0 --port 8088 --prefix-cache-entries 4 --prefix-cache-mem 8GB --prefix-cache-disk 0 --max-concurrent 4 --kv-quant 8 --temp 0.2 --top-p 0.95 --top-k 20 --ctx-size 131072 --prefill-chunk 8192 --qwen-gdn 16 --expert-pick-tolerance 0.3 --metrics --model /Users/edwardbeech/.sushi/models/initialed85/Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw/"
+  },
+  "score": {
+    "passed": 81,
+    "total": 100,
+    "stopped_token_cap": 0,
+    "errors": 0,
+    "by_source": [
+      {
+        "source": "HumanEval",
+        "passed": 48,
+        "failed": 2,
+        "stopped": 0,
+        "error": 0,
+        "total": 50
+      },
+      {
+        "source": "MBPP",
+        "passed": 33,
+        "failed": 17,
+        "stopped": 0,
+        "error": 0,
+        "total": 50
+      }
+    ]
+  },
+  "cost": {
+    "duration_s": 2088.9,
+    "output_tokens": 66332,
+    "input_tokens": 15809,
+    "mean_output_tokens_per_question": 663.3,
+    "mean_reasoning_tokens_per_question": 565.0
+  },
+  "measured_utc": "20261025T104500Z",
+  "valid": true,
+  "cases_without_final_text": 3,
+  "cases_without_generation": 0,
+  "machine": {
+    "platform": "darwin",
+    "arch": "arm64",
+    "cpu": "Apple M2 Max",
+    "memGB": 64
+  },
+  "deck_licenses": {
+    "GPQA": "CC BY 4.0",
+    "SuperGPQA": "ODC-BY",
+    "AIME 2025 mirror": "MIT",
+    "MMLU-Pro": "Apache-2.0 (as redistributed by llmprobe)",
+    "OlympiadBench": "Apache-2.0 (as redistributed by llmprobe)",
+    "LiveBench": "Apache-2.0 (as redistributed by llmprobe)",
+    "NIST Juliet reductions": "CC0",
+    "MultiPL-E (code deck)": "MIT"
+  },
+  "comparability": "Suites are not comparable to each other. Greedy (t=0) runs are not comparable to --sampling preset runs. Effort, output cap, KV quantisation and MTP must match between two runs that are being compared. llmprobe's own wording: 'Suites are not comparable to each other'; 'Hard runs are reported as such and are not comparable to core runs'.",
+  "notes": "aggregate scores only; the prompt sets are third-party corpora under the licenses listed and are not redistributed by this repo"
+}

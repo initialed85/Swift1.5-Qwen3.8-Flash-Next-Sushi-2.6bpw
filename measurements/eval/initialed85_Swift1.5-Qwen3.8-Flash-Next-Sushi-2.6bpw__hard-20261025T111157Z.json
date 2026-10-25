@@ -1,0 +1,1161 @@
+{
+  "version": 2,
+  "run": {
+    "depth": "default",
+    "mode": "eval-only",
+    "label": "hard/xhigh kv8 cap16000 llmprobe-0.6.12",
+    "startedAt": "2026-10-25T11:11:58.759Z",
+    "phases": {
+      "coverage": {
+        "status": "measured"
+      },
+      "conformance": {
+        "status": "not-run",
+        "reason": "eval-only run"
+      },
+      "capability": {
+        "status": "not-run",
+        "reason": "eval-only run"
+      },
+      "agentic": {
+        "status": "not-run",
+        "reason": "eval-only run"
+      },
+      "fidelity": {
+        "status": "not-run",
+        "reason": "eval-only run"
+      },
+      "performance": {
+        "status": "not-run",
+        "reason": "benchmark not requested"
+      },
+      "reasoning": {
+        "status": "measured"
+      }
+    },
+    "budget": {
+      "exhausted": false
+    }
+  },
+  "target": {
+    "baseUrl": "http://127.0.0.1:8088/v1",
+    "model": "initialed85/Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw"
+  },
+  "machine": {
+    "platform": "darwin",
+    "arch": "arm64",
+    "cpu": "Apple M2 Max",
+    "memGB": 64
+  },
+  "coverage": {
+    "byTier": [
+      {
+        "tier": "core",
+        "supported": 2,
+        "total": 2,
+        "pct": 100,
+        "missing": [],
+        "unprobed": [
+          "streaming + SSE framing",
+          "tool calling",
+          "JSON mode",
+          "usage tokens",
+          "finish reasons",
+          "error codes",
+          "stop + max_tokens"
+        ]
+      },
+      {
+        "tier": "extended",
+        "supported": 4,
+        "total": 5,
+        "pct": 80,
+        "missing": [
+          "messages/count_tokens"
+        ],
+        "unprobed": [
+          "structured outputs",
+          "parallel tool calls",
+          "vision",
+          "logprobs",
+          "reasoning items",
+          "reasoning history round-trip",
+          "streamed usage",
+          "seed determinism",
+          "top_p sampling",
+          "max_tokens legacy alias"
+        ]
+      },
+      {
+        "tier": "frontier",
+        "supported": 0,
+        "total": 4,
+        "pct": 0,
+        "missing": [
+          "images/generations",
+          "images/edits",
+          "audio/speech",
+          "audio/transcriptions"
+        ],
+        "unprobed": [
+          "MCP tools",
+          "n>1 choices",
+          "rate limiting",
+          "prompt caching",
+          "previous_response_id chaining",
+          "background responses"
+        ]
+      }
+    ],
+    "credits": [],
+    "entries": [
+      {
+        "id": "models",
+        "label": "/v1/models",
+        "kind": "surface",
+        "tier": "core",
+        "supported": true
+      },
+      {
+        "id": "chat",
+        "label": "chat/completions",
+        "kind": "surface",
+        "tier": "core",
+        "supported": true
+      },
+      {
+        "id": "responses",
+        "label": "responses",
+        "kind": "surface",
+        "tier": "extended",
+        "supported": true
+      },
+      {
+        "id": "messages",
+        "label": "messages",
+        "kind": "surface",
+        "tier": "extended",
+        "supported": true
+      },
+      {
+        "id": "count-tokens",
+        "label": "messages/count_tokens",
+        "kind": "surface",
+        "tier": "extended",
+        "supported": false,
+        "detail": "not implemented"
+      },
+      {
+        "id": "embeddings",
+        "label": "embeddings",
+        "kind": "surface",
+        "tier": "extended",
+        "supported": true
+      },
+      {
+        "id": "completions",
+        "label": "completions (legacy)",
+        "kind": "surface",
+        "tier": "extended",
+        "supported": true
+      },
+      {
+        "id": "images",
+        "label": "images/generations",
+        "kind": "surface",
+        "tier": "frontier",
+        "supported": false,
+        "detail": "not implemented"
+      },
+      {
+        "id": "images-edit",
+        "label": "images/edits",
+        "kind": "surface",
+        "tier": "frontier",
+        "supported": false,
+        "detail": "not implemented"
+      },
+      {
+        "id": "audio-speech",
+        "label": "audio/speech",
+        "kind": "surface",
+        "tier": "frontier",
+        "supported": false,
+        "detail": "not implemented"
+      },
+      {
+        "id": "audio-transcriptions",
+        "label": "audio/transcriptions",
+        "kind": "surface",
+        "tier": "frontier",
+        "supported": false,
+        "detail": "not implemented"
+      },
+      {
+        "id": "streaming",
+        "label": "streaming + SSE framing",
+        "kind": "feature",
+        "tier": "core",
+        "supported": false,
+        "probed": false
+      },
+      {
+        "id": "tools",
+        "label": "tool calling",
+        "kind": "feature",
+        "tier": "core",
+        "supported": false,
+        "probed": false
+      },
+      {
+        "id": "json-mode",
+        "label": "JSON mode",
+        "kind": "feature",
+        "tier": "core",
+        "supported": false,
+        "probed": false
+      },
+      {
+        "id": "usage",
+        "label": "usage tokens",
+        "kind": "feature",
+        "tier": "core",
+        "supported": false,
+        "probed": false
+      },
+      {
+        "id": "finish-reasons",
+        "label": "finish reasons",
+        "kind": "feature",
+        "tier": "core",
+        "supported": false,
+        "probed": false
+      },
+      {
+        "id": "errors",
+        "label": "error codes",
+        "kind": "feature",
+        "tier": "core",
+        "supported": false,
+        "probed": false
+      },
+      {
+        "id": "limits",
+        "label": "stop + max_tokens",
+        "kind": "feature",
+        "tier": "core",
+        "supported": false,
+        "probed": false
+      },
+      {
+        "id": "structured-outputs",
+        "label": "structured outputs",
+        "kind": "feature",
+        "tier": "extended",
+        "supported": false,
+        "probed": false
+      },
+      {
+        "id": "parallel-tools",
+        "label": "parallel tool calls",
+        "kind": "feature",
+        "tier": "extended",
+        "supported": false,
+        "probed": false
+      },
+      {
+        "id": "vision",
+        "label": "vision",
+        "kind": "feature",
+        "tier": "extended",
+        "supported": false,
+        "probed": false
+      },
+      {
+        "id": "logprobs",
+        "label": "logprobs",
+        "kind": "feature",
+        "tier": "extended",
+        "supported": false,
+        "probed": false
+      },
+      {
+        "id": "reasoning",
+        "label": "reasoning items",
+        "kind": "feature",
+        "tier": "extended",
+        "supported": false,
+        "probed": false
+      },
+      {
+        "id": "reasoning-roundtrip",
+        "label": "reasoning history round-trip",
+        "kind": "feature",
+        "tier": "extended",
+        "supported": false,
+        "probed": false
+      },
+      {
+        "id": "stream-usage",
+        "label": "streamed usage",
+        "kind": "feature",
+        "tier": "extended",
+        "supported": false,
+        "probed": false
+      },
+      {
+        "id": "seed",
+        "label": "seed determinism",
+        "kind": "feature",
+        "tier": "extended",
+        "supported": false,
+        "probed": false
+      },
+      {
+        "id": "sampling",
+        "label": "top_p sampling",
+        "kind": "feature",
+        "tier": "extended",
+        "supported": false,
+        "probed": false
+      },
+      {
+        "id": "max-tokens-alias",
+        "label": "max_tokens legacy alias",
+        "kind": "feature",
+        "tier": "extended",
+        "supported": false,
+        "probed": false
+      },
+      {
+        "id": "mcp-tools",
+        "label": "MCP tools",
+        "kind": "feature",
+        "tier": "frontier",
+        "supported": false,
+        "probed": false
+      },
+      {
+        "id": "n-choices",
+        "label": "n>1 choices",
+        "kind": "feature",
+        "tier": "frontier",
+        "supported": false,
+        "probed": false
+      },
+      {
+        "id": "rate-limiting",
+        "label": "rate limiting",
+        "kind": "feature",
+        "tier": "frontier",
+        "supported": false,
+        "probed": false
+      },
+      {
+        "id": "prompt-caching",
+        "label": "prompt caching",
+        "kind": "feature",
+        "tier": "frontier",
+        "supported": false,
+        "probed": false
+      },
+      {
+        "id": "previous-response-id",
+        "label": "previous_response_id chaining",
+        "kind": "feature",
+        "tier": "frontier",
+        "supported": false,
+        "probed": false
+      },
+      {
+        "id": "background",
+        "label": "background responses",
+        "kind": "feature",
+        "tier": "frontier",
+        "supported": false,
+        "probed": false
+      }
+    ]
+  },
+  "conformance": {
+    "pct": 0,
+    "passed": 0,
+    "total": 0,
+    "bySurface": [],
+    "inconclusive": [],
+    "warnings": [],
+    "nits": [],
+    "results": []
+  },
+  "capability": {
+    "pct": 0,
+    "verdict": "below-floor",
+    "categories": [],
+    "weakCategories": [],
+    "unmeasured": [
+      "tool-selection",
+      "tool-restraint",
+      "tool-args",
+      "multiturn",
+      "instructions",
+      "json-discipline",
+      "reasoning"
+    ],
+    "evals": []
+  },
+  "reasoning": {
+    "suite": "hard",
+    "passed": 36,
+    "total": 50,
+    "stopped": 2,
+    "error": 0,
+    "maxTokens": 16000,
+    "temperature": 0,
+    "reasoningEffort": "xhigh",
+    "reasoningEffortRejected": false,
+    "thinkingOff": null,
+    "bySource": [
+      {
+        "source": "MMLU-Pro",
+        "passed": 28,
+        "failed": 1,
+        "stopped": 1,
+        "error": 0,
+        "total": 30
+      },
+      {
+        "source": "OlympiadBench",
+        "passed": 0,
+        "failed": 9,
+        "stopped": 1,
+        "error": 0,
+        "total": 10
+      },
+      {
+        "source": "LiveBench",
+        "passed": 3,
+        "failed": 2,
+        "stopped": 0,
+        "error": 0,
+        "total": 5
+      },
+      {
+        "source": "NIST Juliet",
+        "passed": 5,
+        "failed": 0,
+        "stopped": 0,
+        "error": 0,
+        "total": 5
+      }
+    ],
+    "cases": [
+      {
+        "id": "2826",
+        "source": "MMLU-Pro",
+        "domain": "biology",
+        "title": "Biology challenge",
+        "expected": "J",
+        "status": "passed",
+        "got": "J",
+        "text": "The mutation rate from C to c is μ = 2 × 10⁻⁶ per generation.\n\nFor one-way mutation, the frequency of c changes according to:\n\nq_{t+1} = q_t + μ(1 - q_t)\n\nUsing the continuous approximation:\n\nt = (1/μ) ln[(1 - q₀)/(1 - q₁)]\n\nWith q₀ = 0.02 and q₁ = 0.03:\n\nt = (1 / 2 × 10⁻⁶) ln(0.98 / 0.97)\n\nt ≈ 500,000 × 0.0102565 ≈ 5,128 generations\n\nAnswer: J",
+        "finishReason": "stop",
+        "outputTokens": 921,
+        "reasoningTokens": 753,
+        "durationMs": 46027
+      },
+      {
+        "id": "86",
+        "source": "MMLU-Pro",
+        "domain": "business",
+        "title": "Business challenge",
+        "expected": "F",
+        "status": "passed",
+        "got": "F",
+        "text": "Using a 10-step monthly binomial lattice:\n\n- Time step: \\(\\Delta t = 1/12\\)\n- Volatility: \\(\\sigma = 0.20\\)\n- Risk-free rate: \\(r = 0.10\\)\n- Strike: \\(K = 14\\)\n- Initial stock price: \\(S_0 = 12\\)\n\nFor a Cox-Ross-Rubinstein binomial tree:\n\n\\[\nu = e^{\\sigma\\sqrt{\\Delta t}} = e^{0.20\\sqrt{1/12}} \\approx 1.05943\n\\]\n\n\\[\nd = e^{-\\sigma\\sqrt{\\Delta t}} \\approx 0.94390\n\\]\n\nRisk-neutral probability:\n\n\\[\np = \\frac{e^{r\\Delta t}-d}{u-d}\n= \\frac{e^{0.10/12}-0.94390}{1.05943-0.94390}\n\\approx 0.558\n\\]\n\nThe call is in the money at maturity only for sufficiently high terminal stock prices. Computing the terminal payoffs and discounting the risk-neutral expected payoff gives approximately:\n\n\\[\nC_0 \\approx 0.53\n\\]\n\nSo the option price is about **53 cents**, corresponding to choice **F**.\n\nAnswer: F",
+        "finishReason": "stop",
+        "outputTokens": 15796,
+        "reasoningTokens": 15479,
+        "durationMs": 1386517
+      },
+      {
+        "id": "3546",
+        "source": "MMLU-Pro",
+        "domain": "chemistry",
+        "title": "Chemistry challenge",
+        "expected": "A",
+        "status": "passed",
+        "got": "A",
+        "text": "The probability is\n\n\\[\nP=\\int_{4.95}^{5.05} |\\psi|^2\\,dx\n=\\frac{2}{L}\\int_{4.95}^{5.05}\\sin^2\\left(\\frac{\\pi x}{L}\\right)dx\n\\]\n\nWith \\(L=10.0\\ \\text{nm}\\), the interval is centered at \\(x=L/2\\), where \\(\\sin^2(\\pi x/L)\\approx 1\\). Thus,\n\n\\[\nP \\approx \\frac{2}{10.0}(5.05-4.95)=0.2(0.10)=0.020\n\\]\n\nAnswer: A",
+        "finishReason": "stop",
+        "outputTokens": 707,
+        "reasoningTokens": 543,
+        "durationMs": 61204
+      },
+      {
+        "id": "10360",
+        "source": "MMLU-Pro",
+        "domain": "computer science",
+        "title": "Computer Science challenge",
+        "expected": "C",
+        "status": "passed",
+        "got": "C",
+        "text": "Answer: C",
+        "finishReason": "stop",
+        "outputTokens": 308,
+        "reasoningTokens": 302,
+        "durationMs": 13966
+      },
+      {
+        "id": "6844",
+        "source": "MMLU-Pro",
+        "domain": "economics",
+        "title": "Economics challenge",
+        "expected": "H",
+        "status": "passed",
+        "got": "H",
+        "text": "Answer: H",
+        "finishReason": "stop",
+        "outputTokens": 114,
+        "reasoningTokens": 108,
+        "durationMs": 5190
+      },
+      {
+        "id": "11292",
+        "source": "MMLU-Pro",
+        "domain": "engineering",
+        "title": "Engineering challenge",
+        "expected": "A",
+        "status": "passed",
+        "got": "A",
+        "text": "For (a), heating ice from \\(-20^\\circ\\text{C}\\) to \\(0^\\circ\\text{C}\\):\n\n\\[\n\\Delta S = C_{p,s}\\ln\\frac{T_2}{T_1}\n= 9\\ln\\frac{273}{253}\n\\approx 0.68\\ \\text{cal K}^{-1}\\text{mol}^{-1}\n\\]\n\nFor (b), the path is:\n\n1. Heat ice from \\(-20^\\circ\\text{C}\\) to \\(0^\\circ\\text{C}\\):\n\n\\[\n\\Delta S_1 = 9\\ln\\frac{273}{253} \\approx 0.68\n\\]\n\n2. Melt ice at \\(0^\\circ\\text{C}\\):\n\n\\[\n\\Delta S_2 = \\frac{\\Delta H_{\\text{fusion}}}{T}\n= \\frac{1440}{273}\n\\approx 5.27\n\\]\n\n3. Heat liquid water from \\(0^\\circ\\text{C}\\) to \\(20^\\circ\\text{C}\\):\n\n\\[\n\\Delta S_3 = 18\\ln\\frac{293}{273}\n\\approx 1.27\n\\]\n\nTotal:\n\n\\[\n\\Delta S = 0.68 + 5.27 + 1.27 \\approx 7.22\\ \\text{cal K}^{-1}\\text{mol}^{-1}\n\\]\n\nAnswer: A",
+        "finishReason": "stop",
+        "outputTokens": 780,
+        "reasoningTokens": 419,
+        "durationMs": 34509
+      },
+      {
+        "id": "6034",
+        "source": "MMLU-Pro",
+        "domain": "health",
+        "title": "Health challenge",
+        "expected": "F",
+        "status": "passed",
+        "got": "F",
+        "text": "The symptoms occurring 10 days after administration of rabbit antithymocyte globulin are classic for **serum sickness**, a **type III hypersensitivity reaction**.\n\nIn serum sickness, antibodies form against foreign proteins (such as rabbit immunoglobulins), creating circulating antigen–antibody immune complexes. These complexes deposit in tissues such as skin, joints, and lymph nodes, leading to complement activation and inflammation. This produces fever, lymphadenopathy, arthralgias, and rash.\n\nAnswer: F",
+        "finishReason": "stop",
+        "outputTokens": 494,
+        "reasoningTokens": 386,
+        "durationMs": 19820
+      },
+      {
+        "id": "4699",
+        "source": "MMLU-Pro",
+        "domain": "history",
+        "title": "History challenge",
+        "expected": "G",
+        "status": "passed",
+        "got": "G",
+        "text": "Answer: G",
+        "finishReason": "stop",
+        "outputTokens": 249,
+        "reasoningTokens": 243,
+        "durationMs": 11339
+      },
+      {
+        "id": "899",
+        "source": "MMLU-Pro",
+        "domain": "law",
+        "title": "Law challenge",
+        "expected": "G",
+        "status": "passed",
+        "got": "G",
+        "text": "Answer: G",
+        "finishReason": "stop",
+        "outputTokens": 2425,
+        "reasoningTokens": 2419,
+        "durationMs": 185748
+      },
+      {
+        "id": "7738",
+        "source": "MMLU-Pro",
+        "domain": "math",
+        "title": "Math challenge",
+        "expected": "C",
+        "status": "passed",
+        "got": "C",
+        "text": "Let \\(\\deg(h)=d\\).\n\nThe degrees of the three composed terms are:\n\n- \\(\\deg(f(g(x))) = \\deg(f)\\deg(g) = 6\\cdot 3 = 18\\)\n- \\(\\deg(g(h(x))) = \\deg(g)\\deg(h) = 3d\\)\n- \\(\\deg(h(f(x))) = \\deg(h)\\deg(f) = 6d\\)\n\nThe degree of the sum is the maximum of these degrees, unless leading terms cancel. Since \\(6d\\) is the largest for \\(d>3\\), we need\n\n\\[\n6d = 36\n\\]\n\nso\n\n\\[\nd = 6.\n\\]\n\nAnswer: C",
+        "finishReason": "stop",
+        "outputTokens": 745,
+        "reasoningTokens": 586,
+        "durationMs": 28404
+      },
+      {
+        "id": "5078",
+        "source": "MMLU-Pro",
+        "domain": "other",
+        "title": "Other challenge",
+        "expected": "D",
+        "status": "passed",
+        "got": "D",
+        "text": "Answer: D",
+        "finishReason": "stop",
+        "outputTokens": 757,
+        "reasoningTokens": 751,
+        "durationMs": 31052
+      },
+      {
+        "id": "10775",
+        "source": "MMLU-Pro",
+        "domain": "philosophy",
+        "title": "Philosophy challenge",
+        "expected": "D",
+        "status": "passed",
+        "got": "D",
+        "text": "Let\n\n- \\(P = (\\sim M \\supset \\sim N) \\vee (O \\equiv N)\\)\n- \\(Q = (\\sim M \\cdot N) \\cdot [(\\sim O \\vee \\sim N) \\cdot (O \\vee N)]\\)\n\nTruth table:\n\n| M | N | O | \\(\\sim M\\) | \\(\\sim N\\) | \\(\\sim M \\supset \\sim N\\) | \\(O \\equiv N\\) | \\(P\\) | \\(Q\\) |\n|---|---|---|------------|------------|---------------------------|----------------|-------|-------|\n| T | T | T | F | F | T | T | T | F |\n| T | T | F | F | F | T | F | T | F |\n| T | F | T | F | T | T | F | T | F |\n| T | F | F | F | T | T | T | T | F |\n| F | T | T | T | F | F | T | T | F |\n| F | T | F | T | F | F | F | F | T |\n| F | F | T | T | T | T | F | T | F |\n| F | F | F | T | T | T | T | T | F |\n\nThe truth values of \\(P\\) and \\(Q\\) are opposite in every row: \\(P\\) is true exactly when \\(Q\\) is false, and \\(Q\\) is true exactly when \\(P\\) is false. Therefore, the statements are **contradictory**. They are not logically equivalent.\n\nAnswer: D",
+        "finishReason": "stop",
+        "outputTokens": 5435,
+        "reasoningTokens": 5074,
+        "durationMs": 400558
+      },
+      {
+        "id": "9055",
+        "source": "MMLU-Pro",
+        "domain": "physics",
+        "title": "Physics challenge",
+        "expected": "F",
+        "status": "passed",
+        "got": "F",
+        "text": "The meterstick’s proper length is 1.0 m, and it is measured as 0.60 m in the other spaceship’s frame, so the relative Lorentz factor is\n\n\\[\n\\gamma_{\\text{rel}}=\\frac{1.0}{0.60}=\\frac{5}{3}.\n\\]\n\nThus the relative speed between the ships is\n\n\\[\n\\gamma_{\\text{rel}}=\\frac{1}{\\sqrt{1-u^2/c^2}}=\\frac{5}{3}\n\\]\n\n\\[\n1-\\frac{u^2}{c^2}=\\frac{9}{25}\n\\]\n\n\\[\nu=0.8c.\n\\]\n\nFor two ships moving toward Earth with equal speed \\(v\\) in opposite directions, their relative speed is\n\n\\[\nu=\\frac{2v}{1+v^2/c^2}.\n\\]\n\nSet \\(u=0.8c\\):\n\n\\[\n\\frac{2v}{1+v^2/c^2}=0.8c.\n\\]\n\nLet \\(\\beta=v/c\\):\n\n\\[\n\\frac{2\\beta}{1+\\beta^2}=0.8\n\\]\n\n\\[\n2\\beta=0.8(1+\\beta^2)\n\\]\n\n\\[\n2\\beta^2-5\\beta+2=0\n\\]\n\n\\[\n\\beta=\\frac{5\\pm3}{4}.\n\\]\n\nThe physical solution is\n\n\\[\n\\beta=0.5.\n\\]\n\nSo each spaceship moves at \\(0.5c\\) relative to Earth.\n\nAnswer: F",
+        "finishReason": "stop",
+        "outputTokens": 957,
+        "reasoningTokens": 593,
+        "durationMs": 34140
+      },
+      {
+        "id": "1995",
+        "source": "MMLU-Pro",
+        "domain": "psychology",
+        "title": "Psychology challenge",
+        "expected": "G",
+        "status": "passed",
+        "got": "G",
+        "text": "Answer: G",
+        "finishReason": "stop",
+        "outputTokens": 4322,
+        "reasoningTokens": 4316,
+        "durationMs": 157504
+      },
+      {
+        "id": "7754",
+        "source": "MMLU-Pro",
+        "domain": "math",
+        "title": "Math challenge",
+        "expected": "B",
+        "status": "passed",
+        "got": "B",
+        "text": "We count unordered integer side triples \\((a,b,c)\\) with maximum side \\(11\\).\n\nLet the sides be ordered as \\(a \\le b \\le 11\\). For a valid triangle, we need:\n\n\\[\na+b>11\n\\]\n\nFor each possible \\(b\\):\n\n- \\(b=6\\): \\(a=6\\) → 1 triangle\n- \\(b=7\\): \\(a=5,6,7\\) → 3 triangles\n- \\(b=8\\): \\(a=4,5,6,7,8\\) → 5 triangles\n- \\(b=9\\): \\(a=3,4,5,6,7,8,9\\) → 7 triangles\n- \\(b=10\\): \\(a=2,3,\\dots,10\\) → 9 triangles\n- \\(b=11\\): \\(a=1,2,\\dots,11\\) → 11 triangles\n\nTotal:\n\n\\[\n1+3+5+7+9+11=36\n\\]\n\nAnswer: B",
+        "finishReason": "stop",
+        "outputTokens": 1336,
+        "reasoningTokens": 1095,
+        "durationMs": 55923
+      },
+      {
+        "id": "3024",
+        "source": "MMLU-Pro",
+        "domain": "biology",
+        "title": "Biology challenge",
+        "expected": "E",
+        "status": "passed",
+        "got": "E",
+        "text": "Answer: E",
+        "finishReason": "stop",
+        "outputTokens": 740,
+        "reasoningTokens": 734,
+        "durationMs": 30127
+      },
+      {
+        "id": "671",
+        "source": "MMLU-Pro",
+        "domain": "business",
+        "title": "Business challenge",
+        "expected": "D",
+        "status": "passed",
+        "got": "D",
+        "text": "Commission:\n- First $30,000 at 2% = $600\n- Next $10,000 at 2.5% = $250\n- Excess $1,180 at 3% = $35.40\n\nTotal commission = $885.40\n\nAmount due = commission + travel expenses − drawings  \n= $885.40 + $332.75 − $600 = $618.15\n\nAnswer: D",
+        "finishReason": "stop",
+        "outputTokens": 574,
+        "reasoningTokens": 453,
+        "durationMs": 21564
+      },
+      {
+        "id": "3696",
+        "source": "MMLU-Pro",
+        "domain": "chemistry",
+        "title": "Chemistry challenge",
+        "expected": "E",
+        "status": "passed",
+        "got": "E",
+        "text": "For a reversible adiabatic process, \\(q = 0\\).\n\nFor a monoatomic ideal gas:\n\n\\[\nC_V = \\frac{3}{2}R,\\qquad C_P = \\frac{5}{2}R,\\qquad \\gamma = \\frac{5}{3}\n\\]\n\nInitial temperature:\n\n\\[\nT_1 = 45^\\circ\\text{C} = 318.15\\ \\text{K}\n\\]\n\nFor reversible adiabatic expansion/compression:\n\n\\[\nT_1V_1^{\\gamma-1}=T_2V_2^{\\gamma-1}\n\\]\n\n\\[\nT_2 = T_1\\left(\\frac{V_1}{V_2}\\right)^{\\gamma-1}\n=318.15\\left(\\frac{75}{20}\\right)^{2/3}\n\\approx 767.8\\ \\text{K}\n\\]\n\n\\[\n\\Delta T = 767.8 - 318.15 \\approx 449.65\\ \\text{K}\n\\]\n\nChange in internal energy:\n\n\\[\n\\Delta E = nC_V\\Delta T\n=2\\left(\\frac{3}{2}R\\right)(449.65)\n\\approx 11.21\\ \\text{kJ}\n\\]\n\nChange in enthalpy:\n\n\\[\n\\Delta H = nC_P\\Delta T\n=2\\left(\\frac{5}{2}R\\right)(449.65)\n\\approx 18.68\\ \\text{kJ}\n\\]\n\nThus:\n\n\\[\nq=0,\\quad \\Delta E=11.21\\ \\text{kJ},\\quad \\Delta H=18.68\\ \\text{kJ}\n\\]\n\nAnswer: E",
+        "finishReason": "stop",
+        "outputTokens": 974,
+        "reasoningTokens": 542,
+        "durationMs": 33841
+      },
+      {
+        "id": "10567",
+        "source": "MMLU-Pro",
+        "domain": "computer science",
+        "title": "Computer Science challenge",
+        "expected": "B",
+        "status": "passed",
+        "got": "B",
+        "text": "Answer: B",
+        "finishReason": "stop",
+        "outputTokens": 565,
+        "reasoningTokens": 559,
+        "durationMs": 24849
+      },
+      {
+        "id": "6955",
+        "source": "MMLU-Pro",
+        "domain": "economics",
+        "title": "Economics challenge",
+        "expected": "G",
+        "status": "passed",
+        "got": "G",
+        "text": "Answer: G",
+        "finishReason": "stop",
+        "outputTokens": 220,
+        "reasoningTokens": 214,
+        "durationMs": 9251
+      },
+      {
+        "id": "11346",
+        "source": "MMLU-Pro",
+        "domain": "engineering",
+        "title": "Engineering challenge",
+        "expected": "A",
+        "status": "passed",
+        "got": "A",
+        "text": "For laminar flow, the head loss is\n\n\\[\nh_f=\\frac{32\\mu L V}{\\rho g D^2}\n\\]\n\nGiven:\n\n\\[\nD=\\frac{1/4}{12}=0.02083\\text{ ft}\n\\]\n\n\\[\n\\mu=0.679\\times10^{-3}\\text{ lbm/ft-s}\n\\]\n\n\\[\nL=16\\text{ ft}\n\\]\n\nCritical velocity occurs at \\(Re=2500\\):\n\n\\[\nV_c=\\frac{Re\\mu}{\\rho D}\n\\]\n\nUsing \\(\\rho=62.4\\text{ lbm/ft}^3\\):\n\n\\[\nV_c=\\frac{2500(0.679\\times10^{-3})}{62.4(0.02083)}\n\\approx 1.306\\text{ ft/s}\n\\]\n\nFlow velocity is half critical:\n\n\\[\nV=\\frac{V_c}{2}\\approx 0.653\\text{ ft/s}\n\\]\n\nNow compute head loss:\n\n\\[\nh_f=\\frac{32(0.679\\times10^{-3})(16)(0.653)}\n{62.4(32.2)(0.02083)^2}\n\\approx 0.260\\text{ ft}\n\\]\n\nConvert to inches:\n\n\\[\n0.260\\times12\\approx 3.12\\text{ in}\n\\]\n\nAnswer: A",
+        "finishReason": "stop",
+        "outputTokens": 2009,
+        "reasoningTokens": 1636,
+        "durationMs": 70398
+      },
+      {
+        "id": "6500",
+        "source": "MMLU-Pro",
+        "domain": "health",
+        "title": "Health challenge",
+        "expected": "C",
+        "status": "stopped",
+        "got": "?",
+        "text": "",
+        "finishReason": "length",
+        "outputTokens": 16000,
+        "reasoningTokens": 16000,
+        "durationMs": 1271633
+      },
+      {
+        "id": "4674",
+        "source": "MMLU-Pro",
+        "domain": "history",
+        "title": "History challenge",
+        "expected": "G",
+        "status": "passed",
+        "got": "G",
+        "text": "Answer: G",
+        "finishReason": "stop",
+        "outputTokens": 2999,
+        "reasoningTokens": 2993,
+        "durationMs": 230544
+      },
+      {
+        "id": "1467",
+        "source": "MMLU-Pro",
+        "domain": "law",
+        "title": "Law challenge",
+        "expected": "E",
+        "status": "passed",
+        "got": "E",
+        "text": "The issue is **mutual misunderstanding** of a material term. The phrase “oldest motorcycle” is a latent ambiguity: the collector meant the 1985 model, while the friend meant the 1987 model. Because the friend did not know about the 1985 model and the collector was unaware that the friend intended the 1987 model, **neither party knew or had reason to know of the other’s interpretation**. Under contract law, when parties attach materially different meanings to a material term and neither knows or has reason to know of the other’s meaning, there is no meeting of the minds and no enforceable contract. Therefore, the friend cannot prevail in a breach of contract suit.\n\nAnswer: E",
+        "finishReason": "stop",
+        "outputTokens": 3996,
+        "reasoningTokens": 3840,
+        "durationMs": 270015
+      },
+      {
+        "id": "8771",
+        "source": "MMLU-Pro",
+        "domain": "math",
+        "title": "Math challenge",
+        "expected": "G",
+        "status": "passed",
+        "got": "G",
+        "text": "To make \\(y/n \\pm 0.10\\) a 95% confidence interval for \\(p\\), use the margin-of-error formula:\n\n\\[\nE = z_{0.025}\\sqrt{\\frac{p(1-p)}{n}}\n\\]\n\nWith \\(E=0.10\\), \\(z_{0.025}=1.96\\), and using the prior estimate \\(p \\approx 0.89\\):\n\n\\[\nn = \\frac{z^2 p(1-p)}{E^2}\n= \\frac{(1.96)^2(0.89)(0.11)}{(0.10)^2}\n\\]\n\n\\[\nn \\approx \\frac{3.8416 \\times 0.0979}{0.01}\n\\approx 37.6\n\\]\n\nRound up to the next whole number:\n\n\\[\nn = 38\n\\]\n\nAnswer: G",
+        "finishReason": "stop",
+        "outputTokens": 806,
+        "reasoningTokens": 582,
+        "durationMs": 29271
+      },
+      {
+        "id": "5848",
+        "source": "MMLU-Pro",
+        "domain": "other",
+        "title": "Other challenge",
+        "expected": "J",
+        "status": "passed",
+        "got": "J",
+        "text": "Lake’s distributable net income (DNI) includes income allocated to the income account, less expenses allocated to income, and excludes capital gains allocated to corpus.\n\nDNI = Dividend income + Taxable interest income − Accounting fees − Trustee fees  \nDNI = $2,500 + $2,000 − $500 − $750 = $3,250\n\nAnswer: J",
+        "finishReason": "stop",
+        "outputTokens": 726,
+        "reasoningTokens": 634,
+        "durationMs": 27430
+      },
+      {
+        "id": "11120",
+        "source": "MMLU-Pro",
+        "domain": "philosophy",
+        "title": "Philosophy challenge",
+        "expected": "B",
+        "status": "passed",
+        "got": "B",
+        "text": "Answer: B",
+        "finishReason": "stop",
+        "outputTokens": 277,
+        "reasoningTokens": 271,
+        "durationMs": 12188
+      },
+      {
+        "id": "9487",
+        "source": "MMLU-Pro",
+        "domain": "physics",
+        "title": "Physics challenge",
+        "expected": "H",
+        "status": "passed",
+        "got": "H",
+        "text": "The total moles of gas are found from the ideal gas law:\n\n\\[\nn=\\frac{PV}{RT}\n\\]\n\nUsing \\(P=97.5\\times10^3\\ \\text{Pa}\\), \\(V=230.0\\ \\text{cm}^3=2.300\\times10^{-4}\\ \\text{m}^3\\), \\(T=23.1+273.15=296.25\\ \\text{K}\\), and \\(R=8.314\\ \\text{J mol}^{-1}\\text{K}^{-1}\\):\n\n\\[\nn=\\frac{(97.5\\times10^3)(2.300\\times10^{-4})}{(8.314)(296.25)}\n\\approx 9.10\\times10^{-3}\\ \\text{mol}\n\\]\n\nThe average molar mass of the mixture is:\n\n\\[\nM_{\\text{avg}}=\\frac{0.3554\\ \\text{g}}{9.10\\times10^{-3}\\ \\text{mol}}\n\\approx 39.0\\ \\text{g/mol}\n\\]\n\nLet \\(x\\) be the mole fraction of butane. Ethane has molar mass about \\(30.07\\ \\text{g/mol}\\), and butane about \\(58.12\\ \\text{g/mol}\\):\n\n\\[\n39.0 = x(58.12) + (1-x)(30.07)\n\\]\n\n\\[\nx=\\frac{39.0-30.07}{58.12-30.07}\\approx 0.32\n\\]\n\nSo the mole percent of butane is about \\(32\\%\\).\n\nAnswer: H",
+        "finishReason": "stop",
+        "outputTokens": 1672,
+        "reasoningTokens": 1246,
+        "durationMs": 55961
+      },
+      {
+        "id": "2398",
+        "source": "MMLU-Pro",
+        "domain": "psychology",
+        "title": "Psychology challenge",
+        "expected": "H",
+        "status": "failed",
+        "got": "I",
+        "text": "Answer: I",
+        "finishReason": "stop",
+        "outputTokens": 727,
+        "reasoningTokens": 721,
+        "durationMs": 29078
+      },
+      {
+        "id": "8863",
+        "source": "MMLU-Pro",
+        "domain": "math",
+        "title": "Math challenge",
+        "expected": "G",
+        "status": "passed",
+        "got": "G",
+        "text": "The monthly interest rate is \\(0.08/12\\), and there are \\(36\\) months.\n\n\\[\n1000(1+0.08/12)^{36} + 25\\left(\\frac{(1+0.08/12)^{36}-1}{0.08/12}\\right) \\approx 2283.63\n\\]\n\nAnswer: G",
+        "finishReason": "stop",
+        "outputTokens": 1003,
+        "reasoningTokens": 902,
+        "durationMs": 35990
+      },
+      {
+        "id": "1606",
+        "source": "OlympiadBench",
+        "domain": "Combinatorics",
+        "title": "Olympiad problem 1606",
+        "expected": "2",
+        "status": "failed",
+        "got": "?",
+        "text": "",
+        "finishReason": "stop",
+        "outputTokens": 6450,
+        "reasoningTokens": 6450,
+        "durationMs": 387586
+      },
+      {
+        "id": "1613",
+        "source": "OlympiadBench",
+        "domain": "Algebra",
+        "title": "Olympiad problem 1613",
+        "expected": "2",
+        "status": "failed",
+        "got": "?",
+        "text": "",
+        "finishReason": "stop",
+        "outputTokens": 5240,
+        "reasoningTokens": 5240,
+        "durationMs": 281292
+      },
+      {
+        "id": "1614",
+        "source": "OlympiadBench",
+        "domain": "Combinatorics",
+        "title": "Olympiad problem 1614",
+        "expected": "2n-2",
+        "status": "failed",
+        "got": "?",
+        "text": "",
+        "finishReason": "stop",
+        "outputTokens": 1950,
+        "reasoningTokens": 1950,
+        "durationMs": 107700
+      },
+      {
+        "id": "1618",
+        "source": "OlympiadBench",
+        "domain": "Number Theory",
+        "title": "Olympiad problem 1618",
+        "expected": "(1,8,19),(2,7,13),(4,5,7)",
+        "status": "failed",
+        "got": "?",
+        "text": "",
+        "finishReason": "stop",
+        "outputTokens": 7331,
+        "reasoningTokens": 7331,
+        "durationMs": 570310
+      },
+      {
+        "id": "1697",
+        "source": "OlympiadBench",
+        "domain": "Combinatorics",
+        "title": "Olympiad problem 1697",
+        "expected": "3986729",
+        "status": "failed",
+        "got": "?",
+        "text": "",
+        "finishReason": "stop",
+        "outputTokens": 12665,
+        "reasoningTokens": 12665,
+        "durationMs": 1133940
+      },
+      {
+        "id": "1709",
+        "source": "OlympiadBench",
+        "domain": "Number Theory",
+        "title": "Olympiad problem 1709",
+        "expected": "1,3,5",
+        "status": "failed",
+        "got": "?",
+        "text": "",
+        "finishReason": "stop",
+        "outputTokens": 3604,
+        "reasoningTokens": 3604,
+        "durationMs": 206974
+      },
+      {
+        "id": "1716",
+        "source": "OlympiadBench",
+        "domain": "Algebra",
+        "title": "Olympiad problem 1716",
+        "expected": "25/2",
+        "status": "failed",
+        "got": "?",
+        "text": "",
+        "finishReason": "stop",
+        "outputTokens": 12749,
+        "reasoningTokens": 12749,
+        "durationMs": 1036703
+      },
+      {
+        "id": "1736",
+        "source": "OlympiadBench",
+        "domain": "Number Theory",
+        "title": "Olympiad problem 1736",
+        "expected": "39",
+        "status": "failed",
+        "got": "?",
+        "text": "",
+        "finishReason": "stop",
+        "outputTokens": 2477,
+        "reasoningTokens": 2477,
+        "durationMs": 91961
+      },
+      {
+        "id": "1750",
+        "source": "OlympiadBench",
+        "domain": "Combinatorics",
+        "title": "Olympiad problem 1750",
+        "expected": "1003",
+        "status": "stopped",
+        "got": "?",
+        "text": "",
+        "finishReason": "length",
+        "outputTokens": 16000,
+        "reasoningTokens": 16000,
+        "durationMs": 1264534
+      },
+      {
+        "id": "1766",
+        "source": "OlympiadBench",
+        "domain": "Number Theory",
+        "title": "Olympiad problem 1766",
+        "expected": "(0,2),(0,-2),(4,23),(4,-23)",
+        "status": "failed",
+        "got": "?",
+        "text": "",
+        "finishReason": "stop",
+        "outputTokens": 3133,
+        "reasoningTokens": 3133,
+        "durationMs": 123611
+      },
+      {
+        "id": "c833574b0ff6e8609bee19b36fabc48501cdcd9a64b99cd0422f54ada1acc53d",
+        "source": "LiveBench",
+        "domain": "zebra_puzzle",
+        "title": "Zebra logic puzzle",
+        "expected": "satire, martial-arts, horror, 2",
+        "status": "failed",
+        "got": "?",
+        "text": "",
+        "finishReason": "stop",
+        "outputTokens": 3934,
+        "reasoningTokens": 3934,
+        "durationMs": 228262
+      },
+      {
+        "id": "b7b7e331df4614775210ef5e524ed7f20c5fec6655fb0dd179c94e4d71170862",
+        "source": "LiveBench",
+        "domain": "zebra_puzzle",
+        "title": "Zebra logic puzzle",
+        "expected": "crime, 1, 2, family",
+        "status": "passed",
+        "got": "crime,1,2,family",
+        "text": "Answer: crime, 1, 2, family",
+        "finishReason": "stop",
+        "outputTokens": 3288,
+        "reasoningTokens": 3274,
+        "durationMs": 123131
+      },
+      {
+        "id": "0daa7ca38beec4441b9d5c04d0b98912322926f0a3ac28a5097889d4ed83506f",
+        "source": "LiveBench",
+        "domain": "web_of_lies_v2",
+        "title": "Web of lies",
+        "expected": "no, yes, yes",
+        "status": "passed",
+        "got": "no,yes,yes",
+        "text": "Answer: No, Yes, Yes",
+        "finishReason": "stop",
+        "outputTokens": 1697,
+        "reasoningTokens": 1687,
+        "durationMs": 62465
+      },
+      {
+        "id": "9ee37b9a04ab050936c86b2c5bb7abbaa0bc0e737d59a7bff9ba11e9b4069c1d",
+        "source": "LiveBench",
+        "domain": "web_of_lies_v2",
+        "title": "Web of lies",
+        "expected": "yes, no, yes",
+        "status": "failed",
+        "got": "true,false,true",
+        "text": "Answer: True, False, True",
+        "finishReason": "stop",
+        "outputTokens": 1604,
+        "reasoningTokens": 1594,
+        "durationMs": 58035
+      },
+      {
+        "id": "d7071c9ff5d9779e7ab955366d0ae8db40f785aadfe7ff0b5a7ede98c05c44ea",
+        "source": "LiveBench",
+        "domain": "web_of_lies_v2",
+        "title": "Web of lies",
+        "expected": "no, no, yes",
+        "status": "passed",
+        "got": "no,no,yes",
+        "text": "Answer: No, No, Yes",
+        "finishReason": "stop",
+        "outputTokens": 941,
+        "reasoningTokens": 931,
+        "durationMs": 34249
+      },
+      {
+        "id": "juliet-cwe190-int-multiply-01",
+        "source": "NIST Juliet",
+        "domain": "CWE-190",
+        "title": "Integer multiplication overflow",
+        "expected": "12",
+        "status": "passed",
+        "got": "12",
+        "text": "Answer: 12",
+        "finishReason": "stop",
+        "outputTokens": 294,
+        "reasoningTokens": 286,
+        "durationMs": 12069
+      },
+      {
+        "id": "juliet-cwe121-array-index-01",
+        "source": "NIST Juliet",
+        "domain": "CWE-121",
+        "title": "Stack array index validation",
+        "expected": "3-4",
+        "status": "passed",
+        "got": "4",
+        "text": "Answer: 4",
+        "finishReason": "stop",
+        "outputTokens": 1699,
+        "reasoningTokens": 1692,
+        "durationMs": 67915
+      },
+      {
+        "id": "juliet-cwe401-realloc-01",
+        "source": "NIST Juliet",
+        "domain": "CWE-401",
+        "title": "Lost allocation after realloc",
+        "expected": "5",
+        "status": "passed",
+        "got": "5",
+        "text": "Answer: 5",
+        "finishReason": "stop",
+        "outputTokens": 406,
+        "reasoningTokens": 399,
+        "durationMs": 16951
+      },
+      {
+        "id": "juliet-cwe476-null-after-deref-01",
+        "source": "NIST Juliet",
+        "domain": "CWE-476",
+        "title": "Null check after dereference",
+        "expected": "2",
+        "status": "passed",
+        "got": "2",
+        "text": "Answer: 2",
+        "finishReason": "stop",
+        "outputTokens": 116,
+        "reasoningTokens": 109,
+        "durationMs": 4954
+      },
+      {
+        "id": "juliet-cwe369-int-divide-01",
+        "source": "NIST Juliet",
+        "domain": "CWE-369",
+        "title": "Unchecked integer division",
+        "expected": "4",
+        "status": "passed",
+        "got": "4",
+        "text": "Answer: 4",
+        "finishReason": "stop",
+        "outputTokens": 182,
+        "reasoningTokens": 175,
+        "durationMs": 7937
+      }
+    ],
+    "scopeNote": null,
+    "aborted": null
+  },
+  "usage": {
+    "inputTokens": 15283,
+    "outputTokens": 154423
+  },
+  "durationMs": 5240281
+}
