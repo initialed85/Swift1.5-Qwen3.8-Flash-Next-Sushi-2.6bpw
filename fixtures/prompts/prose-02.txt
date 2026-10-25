@@ -1,0 +1,5 @@
+A small compute cluster built from secondhand machines behaves differently from a data centre
+cluster. The cheap parts fail early, the failures cluster in the first months, and the machines
+that survive their first year tend to survive for years. The software has to be built so that a
+failed node is ordinary, and so that the operator can walk up to a dead machine, unplug it, and
+not think about it again for a week.

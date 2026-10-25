@@ -1,0 +1,3 @@
+Write a Python function `merge_k_sorted(lists)` that merges k already-sorted lists of
+integers into one sorted list using a heap. Return a new list; do not mutate the inputs.
+Handle empty lists and lists that are all equal. Add a docstring with doctests.

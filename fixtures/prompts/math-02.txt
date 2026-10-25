@@ -1,0 +1,3 @@
+Two ships leave the same port, one every 9 days and one every 14 days, both starting on day 0.
+They share a lock that only one ship can use at a time. Over the first 252 days, how many days
+is the lock free? Explain the reasoning before giving the number.

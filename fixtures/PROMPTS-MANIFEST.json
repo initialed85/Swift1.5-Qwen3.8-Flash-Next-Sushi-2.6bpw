@@ -1,0 +1,94 @@
+{
+  "concat_sha256": "b14deeb7f7712c8a3f16ee7013973f9eda5b03f9081ba8d7e6f8ba8d2c8e9276",
+  "created_utc": "2026-10-25",
+  "file_count": 16,
+  "files": [
+    {
+      "bytes": 255,
+      "name": "code-01.txt",
+      "sha256": "36423d46d80f00ea54900dbce80511262f1ef92fca51f143ae1b6835786bde3e"
+    },
+    {
+      "bytes": 255,
+      "name": "code-02.txt",
+      "sha256": "aca70fc12854519f55bb95caffd3f013a3e1e155578352b3137e38e5f41f6029"
+    },
+    {
+      "bytes": 327,
+      "name": "code-03.txt",
+      "sha256": "c979f81d94ec7e9f21d89592d8d178a85f83a8d3651bcc99d17d13ae0dd5e22a"
+    },
+    {
+      "bytes": 400,
+      "name": "code-04-sql.txt",
+      "sha256": "af59dfccbdae43d1eee8094c1705b50c26ba4b8ad1e86952c8aa95840a949bcf"
+    },
+    {
+      "bytes": 379,
+      "name": "design-01.txt",
+      "sha256": "13fdfc2135407b2af2717433ddb50ba81986b2806485500901414d9c25d62150"
+    },
+    {
+      "bytes": 273,
+      "name": "math-01.txt",
+      "sha256": "07b2abf57d4efb658a4fcb8a7b21099c34237cd9f36f2567e39526ea11d6ad3a"
+    },
+    {
+      "bytes": 256,
+      "name": "math-02.txt",
+      "sha256": "00997d2a7aa6f84a5a4da53c733206fad603eb337bb60c342ba0cde11c4b8de7"
+    },
+    {
+      "bytes": 197,
+      "name": "multiling-01.txt",
+      "sha256": "ce13be2d05cf437353e89ff20606762a738a7fb7f9d7f45ba1e3017a9e566bf4"
+    },
+    {
+      "bytes": 394,
+      "name": "prose-01.txt",
+      "sha256": "0794d4a5705f6c5180b8b91bee77a1566b92644d13325227e3345ca527cf251c"
+    },
+    {
+      "bytes": 419,
+      "name": "prose-02.txt",
+      "sha256": "18c2994dc1ee4ce4697595f91f7d16f796f511bef1fb20bfd06dc9159b30e477"
+    },
+    {
+      "bytes": 378,
+      "name": "reason-01.txt",
+      "sha256": "594198b4c40dcfeaa7b604a6ca19ed5eea15b60439da0605bb549502aacfee30"
+    },
+    {
+      "bytes": 306,
+      "name": "reason-02.txt",
+      "sha256": "6ea83ad3e2154e0bebe391b9260e7b0b210cee8a4bdbea36950fe0a7cff788a6"
+    },
+    {
+      "bytes": 266,
+      "name": "stem-01.txt",
+      "sha256": "0c461c260a2b262965da9adff8817f97db5a6b0e4db0bca0b84f46492bfa2603"
+    },
+    {
+      "bytes": 256,
+      "name": "story-01.txt",
+      "sha256": "445029c81f3cfe9a91321378e8e8be296ab145f54e6c2c50492bd4d0794f48a0"
+    },
+    {
+      "bytes": 234,
+      "name": "struct-01.txt",
+      "sha256": "ef3bf7a3db75b5d47be5b57cc6212b8870a2f95742edb5b3e417c5f254d09e3b"
+    },
+    {
+      "bytes": 294,
+      "name": "sys-01.txt",
+      "sha256": "d93ba62981046acf361d81f3f9c5cd7ec87b294361443f423f5736f48ed03ca9"
+    }
+  ],
+  "license": "CC0-1.0 (written for this fixture; free to reuse)",
+  "notes": [
+    "Original text written for this measurement fixture. It is NOT the 16 wikitext prompts used for the published sushi release readings, so KLD numbers produced with this fixture are not comparable with rows quoted from sushi's docs.",
+    "Feed raw with --no-template, greedy, 512 tokens, top-k 10, ctx 8192, kv-quant off for capture; score students with --kv-quant 8."
+  ],
+  "ordering": "capture sorts *.txt by name",
+  "schema": "swift15-kld-prompts-v1"
+}

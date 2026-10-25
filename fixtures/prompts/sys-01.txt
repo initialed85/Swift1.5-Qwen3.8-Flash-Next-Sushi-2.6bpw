@@ -1,0 +1,4 @@
+You are an infrastructure agent. Available tools: read_file(path), run_bash(command),
+kubectl(context, args). A user says: "the dev cluster's Argo app is OutOfSync and I want to know
+why, then fix it if the diff is safe." Plan the exact tool calls, in order, with the arguments
+you would pass.

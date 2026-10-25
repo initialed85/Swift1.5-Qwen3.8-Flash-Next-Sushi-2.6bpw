@@ -1,0 +1,3 @@
+Write a Rust ring buffer `RingBuffer<T>` with `new(capacity)`, `push`, `pop`, `len`, and
+`is_full`. When `push` is called on a full buffer it must overwrite the oldest element and
+return the index it wrote. Keep the implementation safe: no unsafe blocks.

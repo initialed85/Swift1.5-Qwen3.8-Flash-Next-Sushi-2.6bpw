@@ -1,0 +1,5 @@
+Tables: `ships(id, name, home_port)`, `voyages(id, ship_id, departed_at, arrived_at, cargo_tonnage)`.
+Write a SQL query that returns, for each home port, the port name, the number of distinct ships
+that have sailed from it, and the tonnage of the single largest voyage made by a ship from that
+port, ordered by tonnage descending and then port name. Use a window function, not a correlated
+subquery.

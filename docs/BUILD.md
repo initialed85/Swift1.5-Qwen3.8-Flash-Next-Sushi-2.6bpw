@@ -81,7 +81,7 @@ SHA-1 (`SHA1("blob <len>\0" + bytes)`) for ordinary files. `--deep` hashes all 1
 ## Phase 2 — convert (7 h 55 m)
 
 ```bash
-scripts/03-convert.sh ~/swift15-src ~/.sushi/models/beamster/Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw
+scripts/03-convert.sh ~/swift15-src ~/.sushi/models/initialed85/Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw
 ```
 
 The converter's own stages, from the log:
@@ -193,14 +193,18 @@ sushi list        : qwen3.8-flash-next:2.6bpw — published 73.7 GB, this Mac "f
 export SUSHI=$HOME/sushi-macos-arm64/sushi
 scripts/01-download-source.sh   ~/swift15-src
 scripts/02-verify-source.py     ~/swift15-src
-DRY=1 scripts/03-convert.sh     ~/swift15-src ~/.sushi/models/beamster/Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw
-DRY=0 scripts/03-convert.sh     ~/swift15-src ~/.sushi/models/beamster/Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw
-scripts/supervise.sh            ~/swift15-src ~/.sushi/models/beamster/Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw &
-scripts/04-verify-pack.py       ~/.sushi/models/beamster/Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw
-scripts/05-smoke-test.sh        ~/.sushi/models/beamster/Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw
-scripts/07-checksums.sh         ~/.sushi/models/beamster/Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw
-scripts/06-kld.sh               ~/.sushi/models/beamster/Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw ~/swift15-src
-PRIVATE=1 scripts/publish.sh    ~/.sushi/models/beamster/Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw
+DRY=1 scripts/03-convert.sh     ~/swift15-src ~/.sushi/models/initialed85/Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw
+DRY=0 scripts/03-convert.sh     ~/swift15-src ~/.sushi/models/initialed85/Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw
+scripts/supervise.sh            ~/swift15-src ~/.sushi/models/initialed85/Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw &
+scripts/04-verify-pack.py       ~/.sushi/models/initialed85/Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw
+scripts/05-smoke-test.sh        ~/.sushi/models/initialed85/Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw
+scripts/07-checksums.sh         ~/.sushi/models/initialed85/Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw
+scripts/06-kld.sh               ~/.sushi/models/initialed85/Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw ~/swift15-src
+scripts/08-capture.sh             # KLD fixtures: capture fingerprints from both packs (server down)
+CHECK=1 scripts/08-capture.sh     #   plan-only dry run, no GPU work
+scripts/09-compare.sh             #   score every pack against every fixture, print measurements/kld/table.md
+scripts/10-kld-table.py           #   render compare JSONs as a markdown table
+PRIVATE=1 scripts/publish.sh    ~/.sushi/models/initialed85/Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw
 ```
 
 Expected, on this machine: 2 h download · 8 h convert · 20 min verify+smoke · 40 min publish
@@ -211,7 +215,7 @@ upload · 2–5 h if you run KLD. Hands-off: 9 h 45 m of download+convert.
 ```bash
 sudo sysctl iogpu.wired_limit_mb=60416          # 64 GB Mac; 7/8 of RAM, one notch under the pack's need
 ~/run-sushi.sh                                   # swap --model to the new pack
-#   --model ~/.sushi/models/beamster/Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw/
+#   --model ~/.sushi/models/initialed85/Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw/
 #   --mtp --qwen-gdn 16 --ctx-size 131072 --kv-quant 8 --prefix-cache-disk 8G …
 ```
 

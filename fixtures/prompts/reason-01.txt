@@ -1,0 +1,4 @@
+You run a small container terminal. Berth A handles deep-draft ships and can take 4 per day.
+Berth B handles shallow ships, 9 per day. A queue of 41 ships arrives: 22 deep-draft, 19 shallow.
+Deep-draft ships cannot use berth B. How many days to clear the queue, and what would you do
+differently in the 4 days before the queue arrives so the queue never forms? Reason out loud.

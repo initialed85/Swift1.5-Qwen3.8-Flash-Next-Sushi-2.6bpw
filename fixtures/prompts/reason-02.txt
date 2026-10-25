@@ -1,0 +1,4 @@
+A service writes 40 GB of logs a day to a 50 GB disk and the disk fills in 6 days. The
+logrotate config runs daily with rotate 7, compress, and missingok. Something is still wrong.
+List the three most likely causes in order of probability and say the single command that
+would confirm the most likely one.

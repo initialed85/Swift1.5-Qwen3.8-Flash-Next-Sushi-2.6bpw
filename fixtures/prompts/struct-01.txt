@@ -1,0 +1,3 @@
+Emit a JSON object with exactly these keys: "cluster", "apps", "out_of_sync", "actions".
+apps is an array of objects with "name", "sync_status", "health". Use four apps. No prose, no
+markdown fence, no keys other than the ones named.

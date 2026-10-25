@@ -1,0 +1,5 @@
+Write a short design document (headings, no more than 400 words) for a nightly backup service
+for four small Kubernetes clusters running on secondhand hardware. Constraints: one 50 GB disk
+per cluster, a home ethernet link at 33 MB/s, no cloud, restores must be provable. Cover:
+what you back up, where it goes, how long a full restore takes, and how you prove a restore
+worked.

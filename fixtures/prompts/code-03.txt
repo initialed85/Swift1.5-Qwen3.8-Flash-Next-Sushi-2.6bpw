@@ -1,0 +1,13 @@
+This Go function has a bug. Find it, explain why it is wrong in two sentences, then give the
+corrected function.
+
+func firstDuplicate(s []string) string {
+    seen := map[string]bool{}
+    for i := 0; i < len(s); i++ {
+        if seen[s[i]] {
+            return s[i]
+        }
+        seen[s[i+1]] = true
+    }
+    return ""
+}

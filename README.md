@@ -42,8 +42,8 @@ scans:
 
 ```bash
 hf download initialed85/Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw \
-  --local-dir ~/.sushi/models/beamster/Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw
-~/sushi-macos-arm64/sushi --model ~/.sushi/models/beamster/Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw \
+  --local-dir ~/.sushi/models/initialed85/Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw
+~/sushi-macos-arm64/sushi --model ~/.sushi/models/initialed85/Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw \
   --prompt "Hello, Swift."
 ```
 
@@ -173,7 +173,7 @@ constraint is peak, not final size — leave ≥ 60 GB headroom before starting.
 ```bash
 scripts/01-download-source.sh   ~/swift15-src   # 360 GB, resumable
 scripts/02-verify-source.py     ~/swift15-src   # byte-exact vs HF file tree
-scripts/03-convert.sh           ~/swift15-src   ~/.sushi/models/beamster/Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw
+scripts/03-convert.sh           ~/swift15-src   ~/.sushi/models/initialed85/Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw
 scripts/04-verify-pack.py       <pack dir>      # headers, offsets, payload vs on-disk, index closure
 scripts/05-smoke-test.sh        <pack dir>      # generate with the pack, assert the sentinel
 scripts/06-kld.sh               <pack dir>      # optional KLD vs BF16 teacher (needs source re-download)
@@ -189,7 +189,7 @@ failures we hit hardened into checks. `03-convert.sh` is the whole conversion in
 ```bash
 sushi convert exl3 \
   --model ~/swift15-src \
-  --out ~/.sushi/models/beamster/Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw \
+  --out ~/.sushi/models/initialed85/Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw \
   --experts-k 2.625 \
   --codebook mcg \
   --window 15 \

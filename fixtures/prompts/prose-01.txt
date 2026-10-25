@@ -1,0 +1,5 @@
+A tide clock is a dial that shows the state of the tide at a given shore without any input from
+the observer. The oldest surviving examples hang in pubs near estuaries where the tide runs more
+than four metres between high and low water. The mechanism is a single cam, cut to the shape of
+one tidal cycle, turned once every lunar day by a clock movement that runs a little slower than
+the sun.

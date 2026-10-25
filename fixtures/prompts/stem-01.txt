@@ -1,0 +1,3 @@
+Explain, for a reader who knows what a matrix multiply is, why a linear-attention layer with a
+gating decay is cheaper per token at long context than softmax attention, and what it gives up
+in exchange. Keep it under 300 words and do not use the word "transformer".

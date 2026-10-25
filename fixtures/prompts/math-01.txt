@@ -1,0 +1,3 @@
+A ferry makes 7 crossings a day and each crossing carries a whole number of cars. Over 30 days
+the ferry carried exactly 4219 cars. What is the smallest possible number of cars on a single
+crossing? Show the arithmetic and say which step is the one that forces the answer.
