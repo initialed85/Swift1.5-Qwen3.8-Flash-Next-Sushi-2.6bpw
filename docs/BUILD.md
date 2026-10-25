@@ -6,30 +6,6 @@ Long-form companion to [`README.md`](README.md). Everything here is from the act
 Machine-readable versions: [`measurements.json`](measurements.json), [`provenance.json`](provenance.json).
 
 
-### KLD fixtures and pack-vs-pack divergence
-
-`08-capture.sh` writes a logit fingerprint (fixture) for each pack it is pointed at;
-`09-compare.sh` scores every pack against every fixture. Both refuse to start while a
-`sushi serve` process is alive, and both gate every pack through `pack-check.py` first:
-a half-downloaded pack answers `MissingMimoShard`, and the gate catches it before ten
-minutes of GPU time are spent. `CHECK=1` on either script prints the plan and does
-nothing else; `MANIFEST_ONLY=1` on `08` rewrites fixture manifests without touching the
-GPU.
-
-Protocol (from sushi's `docs/quality-kld.md`): capture raw text, no chat template,
-`--tokens 512 --top-k 10 --ctx-size 8192 --kv-quant off --qwen-gdn 32 --no-mtp`,
-`MLX_ENABLE_TF32=0`, students scored at the served `--kv-quant 8`. Fixtures land in
-`~/kld/<pack>/<fixture>/` with a `capture-manifest.json` recording binary, protocol and
-machine; results land in `measurements/kld/*.json` plus `table.md`.
-
-Read the table honestly: a self row (pack against its own fixture) must be 0.0000 KLD /
-100% top-1 on the same binary, and a nonzero self row is engine nondeterminism, not
-quality. Cross rows here compare two quantisations of two DIFFERENT models - Swift 1.5
-against base Qwen - so they are a divergence fingerprint, not a KLD-to-teacher, and they
-are not comparable with the published 16x512 wikitext rows in sushi's docs. Our 16 prompts
-in `fixtures/prompts/` are original text, not the wikitext 16; `standard4` is the bundled
-two-code/two-prose screen.
-
 ## Why this pack exists
 
 You like `Swift1.5-Qwen3.8-Flash-Next` running on Strata (llama.cpp + GGUF). You also have a
@@ -235,6 +211,30 @@ PRIVATE=1 scripts/publish.sh    ~/.sushi/models/initialed85/Swift1.5-Qwen3.8-Fla
 
 Expected, on this machine: 2 h download · 8 h convert · 20 min verify+smoke · 40 min publish
 upload · 2–5 h if you run KLD. Hands-off: 9 h 45 m of download+convert.
+
+### KLD fixtures and pack-vs-pack divergence
+
+`08-capture.sh` writes a logit fingerprint (fixture) for each pack it is pointed at;
+`09-compare.sh` scores every pack against every fixture. Both refuse to start while a
+`sushi serve` process is alive, and both gate every pack through `pack-check.py` first:
+a half-downloaded pack answers `MissingMimoShard`, and the gate catches it before ten
+minutes of GPU time are spent. `CHECK=1` on either script prints the plan and does
+nothing else; `MANIFEST_ONLY=1` on `08` rewrites fixture manifests without touching the
+GPU.
+
+Protocol (from sushi's `docs/quality-kld.md`): capture raw text, no chat template,
+`--tokens 512 --top-k 10 --ctx-size 8192 --kv-quant off --qwen-gdn 32 --no-mtp`,
+`MLX_ENABLE_TF32=0`, students scored at the served `--kv-quant 8`. Fixtures land in
+`~/kld/<pack>/<fixture>/` with a `capture-manifest.json` recording binary, protocol and
+machine; results land in `measurements/kld/*.json` plus `table.md`.
+
+Read the table honestly: a self row (pack against its own fixture) must be 0.0000 KLD /
+100% top-1 on the same binary, and a nonzero self row is engine nondeterminism, not
+quality. Cross rows here compare two quantisations of two DIFFERENT models - Swift 1.5
+against base Qwen - so they are a divergence fingerprint, not a KLD-to-teacher, and they
+are not comparable with the published 16x512 wikitext rows in sushi's docs. Our 16 prompts
+in `fixtures/prompts/` are original text, not the wikitext 16; `standard4` is the bundled
+two-code/two-prose screen.
 
 ## Serving it (deliberately not automated)
 
