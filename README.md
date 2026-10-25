@@ -1,0 +1,362 @@
+---
+license: other
+license_name: swift-open-license-1.0
+license_link: LICENSE
+base_model: ukisai/Swift1.5-Qwen3.8-Flash-Next
+base_model_relation: quantized
+pipeline_tag: image-text-to-text
+tags:
+- sushi
+- exl3
+- apple-silicon
+- mlx
+- qwen4_exp
+- moe
+- quantization
+- swift-1.5
+---
+
+# Swift 1.5 Qwen3.8-Flash-Next — Sushi pack (2.6bpw)
+
+Unofficial, community-built [sushi](https://github.com/beamivalice/sushi) pack of
+[ukisai/Swift1.5-Qwen3.8-Flash-Next](https://huggingface.co/ukisai/Swift1.5-Qwen3.8-Flash-Next),
+quantised to EXL3 2.6 bits/weight on a single 64 GB Apple Silicon Mac.
+
+**Not affiliated with UkisAI or with beamster.** Weights are the property of their respective
+copyright holders (UkisAI, Qwen); this repository is a conversion under the terms of the
+[Swift Open License v1.0](LICENSE) and the [Qwen Community License 1.0](LICENSE-QWEN).
+Read [`NOTICE-CONVERSION.md`](NOTICE-CONVERSION.md) for the full attribution and change notice.
+
+## Getting it
+
+**`sushi pull` cannot fetch this repo.** `pull` takes a short name (`qwen3.8-flash-next[:tag]`) or
+`beamster/<repo>` and accepts **only** packs of the Hugging Face org `beamster`; any other
+`org/repo` exits with an error before anything downloads, and `sushi run` follows the same rule
+when it has to download. So publish under your own name, and install by hand into the tree sushi
+scans:
+
+```bash
+hf download initialed85/Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw \
+  --local-dir ~/.sushi/models/beamster/Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw
+~/sushi-macos-arm64/sushi --model ~/.sushi/models/beamster/Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw \
+  --prompt "Hello, Swift."
+```
+
+The path is deliberately under `~/.sushi/models/beamster/` — that is where `sushi pull` writes
+official packs, and where `sushi serve` finds packs by name. Serving needs the GPU wired-limit
+sysctl first: [`docs/BUILD.md` → Serving it](docs/BUILD.md).
+
+Install sushi (there is no `sushi.sh` installer):
+```bash
+brew install beamivalice/tap/sushi
+# or the release tarball (ad-hoc signed; curl does not quarantine it)
+curl -L https://github.com/beamivalice/sushi/releases/latest/download/sushi-bin-macos-arm64.tar.gz | tar xz
+# a browser download is quarantined: xattr -dr com.apple.quarantine sushi-macos-arm64
+```
+
+## What this is
+
+| part | how it is stored |
+|---|---|
+| routed experts (48 layers × 512, plus the MTP head) | **EXL3, 2.625 bpw** (`--experts-k 2.625` = "2.6bpw"), codebook **`mcg`**, window **15**, `ldlq-rotated`, `svh` output scales |
+| dense part (attention, GatedDeltaNet, shared experts, hyper-connections, indexer, embedding, lm_head) | 8-bit affine, 64-row groups (`trunk=8/64`) |
+| n-gram embedding table | 4-bit affine, group 32, one 32.0 GB file `ngram_table.bin` (29.8 GiB), read from SSD, never wired into GPU memory |
+| vision tower (Qwen3-VL ViT) | included — image and video input work |
+| MTP head | included — speculative decoding |
+| context | native **262,144** tokens, **no YaRN** (see [Context](#context-and-the-one-intentional-difference)) |
+| size | **73.85 GiB** = 79.30 GB across 69 files: 47 261 167 608 B of safetensors payload (52 shards, 47.26 GB on disk) + 32.00 GB n-gram table + tokenizer and card |
+| shards | 52 files, 3 069 tensors |
+
+Runtime requirement: **sushi ≥ 1.3.0** (this build used 1.3.0; the `mcg` codebook, `n42` GEMM body
+and `qwen-gdn` kernels are 1.3.x), Apple Silicon, macOS 26.2+. **sushi only** — does not load in
+transformers, vLLM, mlx-lm, llama.cpp or exllamav3.
+
+## Measured on the build machine
+
+MacBook Pro (Mac14,6) — **Apple M2 Max**, 12 CPU cores (8P+4E), 38 GPU cores, 64 GB, macOS 26.2,
+1 TB APFS volume (994.7 GB), hardline ethernet.
+
+| metric | value |
+|---|---|
+| prefill | **72.7 tok/s** |
+| decode | **45.1 tok/s** |
+| MTP speculative accept | **81.5 %** (181 accepts / 89 attempts, 2.03 tokens per round, depth 6) |
+| preflight | weights **43.44 GB**, needs 45.69 GB, available 58.00 GB → **fits 64 GB** |
+| `sushi list` verdict for `qwen3.8-flash-next:2.6bpw` | **fits**, *recommended* tier for this Mac, 73.7 GB published vs **73.85 GiB built** |
+
+Kernels confirmed engaging in the log: `[exl3] n42 funnel … codebook=mcg window=15`,
+`[exl3-gemm] simdgroup-matrix body n=42`, `[gdn] packed prework engaged: Hk=16 Hv=48`,
+`[attn-pd] sushi_attn_pd`, `[mtp] draft rerank engaged`, `[ngram] speculative decoding engaged`.
+
+No KLD/perplexity figures are published here — see [Quality](#quality-what-we-do-and-do-not-claim).
+
+### Live in production
+
+Serving verified 2026-10-25, 14 minutes after the model swap, on the same box:
+
+```bash
+$ curl -s http://127.0.0.1:8088/v1/models | jq '.data[0] | {id,loaded,state,bytes_resident,bytes_on_disk,context_length,capabilities}'
+{
+  "id": "beamster/Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw",
+  "loaded": true, "state": "ready",
+  "bytes_resident": 47539286008, "bytes_on_disk": 47261601960,
+  "context_length": 131072, "max_model_len": 131072, "batched_decode": true,
+  "capabilities": ["chat","tool_use","streaming","vision","reasoning","json_schema"]
+}
+$ sysctl vm.memory_pressure
+vm.memory_pressure: 0
+```
+
+`vm_stat` reports ~0.1 GB of *free* pages while serving; that is normal for a 64 GB Mac running a
+43 GB pack with an 8 GB disk prefix cache — `vm.memory_pressure: 0` and 94 % system-wide free is
+the health signal, not the free-page count.
+
+## The build, start to finish
+
+One converter (`sushi convert exl3`), one machine, no cluster. Wall clock **7 h 55 m** for the
+conversion; **1 h 50 m** to download the 360 GB source; total **9 h 45 m** hands-off.
+
+```
+12:53  hf download  ukisai/Swift1.5-Qwen3.8-Flash-Next        131 shards, 360.04 GB
+12:53 ─ 15:42  download completes (1 h 50 m, avg 59 MB/s on hardline ethernet, ~12 MB/s WiFi)
+15:42  tree verify: 148/148 files byte-exact vs HF API
+15:45  sushi convert exl3  →  tokenizer load, vocab 248 320, chat template
+15:45 ─ 15:47  built-in calibration mix, 65 536 tokens
+15:47 ─ 15:54  trunk → affine 8/64 (model-trunk-00000..2.safetensors, 5.94 GB)
+15:54 ─ 16:04  n-gram table → 4-bit/g32 (ngram_table.bin, 32.0 GB / 29.8 GiB)
+16:04 ─ 23:35  48 expert layers → EXL3 (layer-0..47.safetensors, ~797 MB each)
+23:35 ─ 23:44  MTP head (mtp-0.safetensors), lm_head, embed, index, vision tower
+23:46  ALL DONE · pack 74G · free 451G
+23:47  source deleted, pack integrity verified, smoke test green
+```
+
+### Per-layer cost, and where the time goes
+
+48 expert layers, **median 9.4 min/layer**, max 9.5 min (layer 0), total 7.55 h of layer work:
+
+| stage | median / layer | total | share |
+|---|---|---|---|
+| `search` (trellis / codebook window search) | 354.4 s | 4.75 h | **55.1 %** |
+| `scale` (output scales, `svh`) | 88.2 s | 1.18 h | 13.7 % |
+| `hessian` (per-expert Hessian build) | 81.7 s | 1.09 h | 12.6 % |
+| `prep` (rotation + activation capture) | 79.3 s | 1.06 h | 12.3 % |
+| `feedback` | 38.2 s | 0.49 h | 5.7 % |
+| `read` + `factor` + `wait` + `pack` | 4.1 s | 0.05 h | 0.6 % |
+| **sum of stages** | **646.1 s** | **8.62 h** | — |
+
+`search` is the dominant cost and is memory-bound: the converter keeps the whole layer's
+512-expert Hessian set resident, which is why the machine wants ≥ 48 GB RAM and nothing else
+big running. `factor` is 0.0 s because `--factor-precision` was left at the default (CPU float64).
+
+### Resource profile (measured, not guessed)
+
+| phase | RSS | wired | disk free | notes |
+|---|---|---|---|---|
+| download | ~1 GB | low | 524 → 165 GB | 4 workers, resumable, `.incomplete` → published per shard |
+| trunk (15:47–15:57) | ~11 GB | ~12 GB | 165 GB | 3 GB RSS in 7 min, ~1.3 GB/s read |
+| n-gram (15:54–16:04) | ~28 GB | — | 165 GB | 20 GB in ~1 min, 32 GB written |
+| experts (16:04–23:35) | 29–33 GB | 4.5–7 GB | 165 → 111 GB | 512-expert set resident, 9.4 min/layer |
+| MTP / lm_head / embed | 32 → 46 GB | 23 → 45 GB | 111 GB | the peak, 51.7/64 GB used, 9 GB free — the tightest moment |
+| serving the pack | — | ~46 GB wired | 111 GB | 12 GB free under 26.4 GB of caches |
+
+Disk math for a 64 GB Mac with a 1 TB volume (994.7 GB): peak requirement **401 GB** (360 source +
+41 pack mid-build), net cost after cleanup **+74 GB**, free at the end **451 GB**. The binding
+constraint is peak, not final size — leave ≥ 60 GB headroom before starting.
+
+## Reproduce it
+
+```bash
+scripts/01-download-source.sh   ~/swift15-src   # 360 GB, resumable
+scripts/02-verify-source.py     ~/swift15-src   # byte-exact vs HF file tree
+scripts/03-convert.sh           ~/swift15-src   ~/.sushi/models/beamster/Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw
+scripts/04-verify-pack.py       <pack dir>      # headers, offsets, payload vs on-disk, index closure
+scripts/05-smoke-test.sh        <pack dir>      # generate with the pack, assert the sentinel
+scripts/06-kld.sh               <pack dir>      # optional KLD vs BF16 teacher (needs source re-download)
+scripts/publish.sh              <pack dir>      # HF card files + weights → a repo
+scripts/supervise.sh            <pack dir>      # the unattended wrapper that finished this build
+```
+
+`scripts/` are the scripts that were actually used, with the knobs promoted to arguments and the
+failures we hit hardened into checks. `03-convert.sh` is the whole conversion in six flags.
+
+### The flags, and the one trap
+
+```bash
+sushi convert exl3 \
+  --model ~/swift15-src \
+  --out ~/.sushi/models/beamster/Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw \
+  --experts-k 2.625 \
+  --codebook mcg \
+  --window 15 \
+  --batch 16
+```
+
+- **`--experts-k 2.625` is the trap.** "2.6bpw" in sushi's vocabulary is **21⁄8**, and the flag
+  accepts a strict 1/8 ladder: `--help` says *"routed-expert rate in bits per weight, 1.5 to 8 in
+  steps of 0.125 (default 2.5)"*. Passing `2.6` fails with
+  `error: BadFlagValue: --experts-k expects <float>; use 'help' to list valid choices` — the
+  *first* run of this build died there. `scripts/03-convert.sh` derives that ladder from the
+  binary's help text and refuses off-grid values, printing `2.6 REJECTED; nearest valid 2.625`.
+- `--codebook mcg` and `--window 15` are beamster's recipe for the 2.6bpw tier. `--help`:
+  codebook is `mcg` or `mul1` (default `mcg`); the window is the trellis search window, **12 to
+  16, default 15**. The converter's auto choice for this model is 32, which the flag caps — the
+  log shows `expert windows: auto (window 32)` then `expert windows: capped (window 32 -> 15)`.
+- `--batch 16` (default) quantises the routed experts **16 banks together**; the range is 1 to 64
+  and — per `docs/flags.md` — **the pack bytes do not depend on it**. It is a RAM/throughput knob,
+  not a quality knob: raise it if the box has memory to spare, lower it if the layer-resident set
+  gets tight. Our 64 GB box ran 16 all the way through.
+- `--calib` was left unset: sushi builds in a 64k prose+code mix, `calib_sha256` recorded below.
+- `--factor-precision 32` (GPU float32, faster) was deliberately **not** used — it changes pack
+  bytes; keeping the default CPU float64 path is what makes this pack comparable in structure to
+  the released 2.6bpw tier.
+- Resume is real: `--resume` re-reads `convert-progress.json` (`policy`, `trunk_done`,
+  `ngram_done`, `ngram_present`) and continues at the layer boundary, not from scratch. The
+  unattended wrapper used it.
+
+## Context, and the one intentional difference
+
+`config.json` in this pack keeps the native `max_position_embeddings: 262144` and
+`rope_type: default` — i.e. **no YaRN**. beamster's published packs ship **YaRN ×4 → 1 048 576
+tokens**. So:
+
+- At 131 072-token serving contexts (our use, and the Swift README's own Terminal-Bench setup)
+  this pack is exactly as advertised.
+- For 1M-token contexts, extend at serve time with `--config-overrides` (JSON deep-merged into the
+  pack's `config.json` — "the context-extension lever" in `docs/flags.md`), e.g.
+
+  ```bash
+  --config-overrides '{"text_config":{"rope_scaling":{"type":"yarn","factor":4.0,"original_max_position_embeddings":262144}}}'
+  ```
+
+  262 144 × 4 = 1 048 576. Sushi's YaRN arm refuses without `original_max_position_embeddings`
+  (`YarnRopeNeedsOriginalMaxPos`), and it confirms on the log as
+  `[rope] YaRN: factor … (window …), rotary … dims, ramp …, mscale …`. No re-conversion needed.
+
+The other difference to be honest about: beamster's pack records `calibration=imatrix-diagonal`
+with its own `imatrix_sha256`; this pack records sushi's **built-in** 64k calibration mix.
+Same encoder, same codebook, same window, same rate — **different calibration**. Do not expect
+bit-identical quality to the released 2.6bpw pack; expect the same rate and encoder.
+
+## Quality: what we do and do not claim
+
+Claimed, and reproducible with `scripts/05-smoke-test.sh` on a 64 GB M2:
+
+- loads and serves in sushi 1.3.0; MTP, `mcg`, `n42`, GDN packed-prework, vision tower all engage;
+- 45.1 decode tok/s, 72.7 prefill tok/s, 81.5 % MTP accept;
+- sane generations — a from-scratch `fnmatch`-free glob matcher (correct), a 306-token answer,
+  `PACK OK` sentinel;
+- 47.26 GB payload with 0 header/offset/index defects (`scripts/04-verify-pack.py`).
+
+Not claimed: KLD, perplexity, NLL, or any benchmark score vs the BF16 Swift checkpoint. sushi
+ships the tool for exactly that (`scripts/06-kld.sh`), which needs the 360 GB BF16 teacher
+present. The bar to beat, from sushi's own tables
+([`docs/qwen4-kld.md`](https://github.com/beamivalice/sushi/blob/main/docs/qwen4-kld.md)):
+
+| pack | GiB | KLD (to first EOS) | top-1 |
+|---|---|---|---|
+| published **Sushi-2.6bpw** (base Qwen, 4-bit g32 table) | 43.95 | **0.1355** | 89.08 % |
+| Sushi-3bpw, published 2026-09-29 | 49.33 | 0.1036 | 90.31 % |
+| Sushi-4bpw, published 2026-09-29 | 63.68 | 0.0592 | 92.89 % |
+| Sushi-2bpw, published (bf16 KV) | 34.97 | 0.2080 | 85.94 % |
+| *this pack* | 44.01 GiB of weights + 29.8 GiB table = 73.85 GiB | *not measured* | *not measured* |
+
+House protocol: 16 prompts × 512 tokens, scored to the teacher's first end-of-turn token (7 186
+positions); teacher captured with a dense KV cache, students scored at `--kv-quant 8`; weights
+resident; the n-gram table is excluded from the GiB column. Quote the first-EOS number, with the
+all-positions number beside it. Same rate, same encoder, same window — so expect the region
+around **0.13–0.15**, with our built-in calibration (not beamster's imatrix) as the reason it will
+not be 0.1355 exactly.
+
+## File map
+
+```
+model.safetensors.index.json        3 069 tensors → 52 shards
+model-trunk-00000..2.safetensors    dense/affine 8-bit, 5.94 GB
+ngram_table.bin                     32.0 GB (29.8 GiB), 4-bit/g32, SSD-resident
+layer-0..47.safetensors             EXL3 experts, ~797 MB each
+mtp-0.safetensors                   MTP head, 96 MB
+model-lm-head.safetensors · model-embed.safetensors · model-vision.safetensors
+config.json · generation_config.json · chat_template.jinja
+tokenizer.json · tokenizer.config.json · tokenizer.sushi.json · vocab.json · merges.txt ·
+  vocab.filemap.json · preprocessor_config.json · video_preprocessor_config.json
+LICENSE · LICENSE-QWEN · NOTICE        carried through from the source, unmodified
+README.md · ukisai-banner.png · swift-1.5-flash-next-demo.mp4   from the source repo
+```
+
+Checksums of all 74 GB: [`SHA256SUMS.txt`](SHA256SUMS.txt) (`shasum -a 256 -c SHA256SUMS.txt`).
+Machine-readable provenance: [`provenance.json`](provenance.json). Raw measurements:
+[`measurements.json`](measurements.json).
+
+The unedited build logs are in [`logs/`](logs) — download, pipeline, full converter output
+(48 layers with per-stage timings), supervisor, smoke test, the real-prompt test — plus the
+in-the-moment scripts (`build-sushi-pack.sh`, `swift15-pipeline.sh`, `sushi-supervisor.sh`).
+Local paths are redacted to `$HOME`. Read them as the receipts behind every number above.
+
+## Licensing — read this before you use or republish
+
+Two licences apply, and both travel with this pack:
+
+- **`LICENSE` — Swift Open License v1.0 (UkisAI).** Apache-2.0-shaped, plus §5 *Commercial Use
+  Limitation*: rights are void for a legal entity exceeding **US$1M** gross revenue in the last
+  fiscal year (§5(a,b)); non-profits are exempt for non-commercial/research use (§5(c)); above
+  the threshold, get a [Swift Enterprise License](https://ukisai.com/contact) (§5(d)).
+  §8 forbids use of the "UkisAI"/"Swift" marks beyond describing origin.
+- **`LICENSE-QWEN` — Qwen Community License 1.0 (Qwen).** Permits use, modification, publishing
+  and distribution; §1 copyright notice + prominent display above 100 M MAU / US$20 M monthly
+  revenue; §2 requires a separate Qwen licence for *Model as a Service* / *AI Work Assistant*
+  commercial use (internal use is exempt).
+
+§4 of the Swift licence is what authorises **this** repo, and §4(e) is explicit about quantised
+derivatives: *"including merged, quantized, or otherwise converted weights that incorporate the
+Base Model, You must also give recipients a copy of the Base Model License."* So `LICENSE`,
+`LICENSE-QWEN` and `NOTICE` are all redistributed unchanged, and §4(b)'s change notice is
+[`NOTICE-CONVERSION.md`](NOTICE-CONVERSION.md). The source repo is **not gated**.
+
+This is a hobbyist build for personal/research use. If you work somewhere above the thresholds,
+get the licences from UkisAI and Qwen before any commercial use.
+
+## References
+
+Engine, converter and measurement tool —
+[`beamivalice/sushi`](https://github.com/beamivalice/sushi). The docs this build actually used:
+
+| doc | what it is |
+|---|---|
+| [`docs/usage.md`](https://github.com/beamivalice/sushi/blob/main/docs/usage.md) | install; `pull`/`list`/`run`/`serve`; the RAM tier per Mac per pack |
+| [`docs/flags.md`](https://github.com/beamivalice/sushi/blob/main/docs/flags.md) | serve and convert flags |
+| [`docs/pack-format.md`](https://github.com/beamivalice/sushi/blob/main/docs/pack-format.md) | **the consumer contract**: tensor layout a pack must ship, and the quality bar |
+| [`docs/encoder.md`](https://github.com/beamivalice/sushi/blob/main/docs/encoder.md), [`docs/engine-exl3-encoder.md`](https://github.com/beamivalice/sushi/blob/main/docs/engine-exl3-encoder.md) | what `convert exl3` writes; the numerical core |
+| [`docs/qwen4-arch.md`](https://github.com/beamivalice/sushi/blob/main/docs/qwen4-arch.md) | the `qwen4_exp` architecture this pack is |
+| [`docs/quality-kld.md`](https://github.com/beamivalice/sushi/blob/main/docs/quality-kld.md), [`docs/qwen4-kld.md`](https://github.com/beamivalice/sushi/blob/main/docs/qwen4-kld.md) | the KLD protocol and the published numbers (the bar in [Quality](#quality-what-we-do-and-do-not-claim)) |
+| [`docs/qwen4-perf.md`](https://github.com/beamivalice/sushi/blob/main/docs/qwen4-perf.md), [`docs/perf-baselines.md`](https://github.com/beamivalice/sushi/blob/main/docs/perf-baselines.md) | expected tok/s per tier |
+| [`docs/engine-mtp.md`](https://github.com/beamivalice/sushi/blob/main/docs/engine-mtp.md), [`docs/engine-kv-cache.md`](https://github.com/beamivalice/sushi/blob/main/docs/engine-kv-cache.md), [`docs/engine-prefix-cache.md`](https://github.com/beamivalice/sushi/blob/main/docs/engine-prefix-cache.md) | the three subsystems we saw engage |
+| [`docs/server-lifecycle.md`](https://github.com/beamivalice/sushi/blob/main/docs/server-lifecycle.md), [`docs/server-http-apis.md`](https://github.com/beamivalice/sushi/blob/main/docs/server-http-apis.md) | server start, `/v1/models`, metrics |
+| [`docs/process-measurement.md`](https://github.com/beamivalice/sushi/blob/main/docs/process-measurement.md) | how to measure a build like [docs/BUILD.md](docs/BUILD.md) does |
+
+Model and pack references:
+
+- [`beamster/Qwen3.8-Flash-Next-Sushi-2.6bpw`](https://huggingface.co/beamster/Qwen3.8-Flash-Next-Sushi-2.6bpw) — the official 2.6bpw tier: the rate, codebook and window this build matches, and the only org `sushi pull` accepts
+- [`ukisai/Swift1.5-Qwen3.8-Flash-Next`](https://huggingface.co/ukisai/Swift1.5-Qwen3.8-Flash-Next) — BF16 source, 360 GB, 149 files
+- [`ukisai/Swift1.5-Qwen3.8-Flash-Next-GGUF`](https://huggingface.co/ukisai/Swift1.5-Qwen3.8-Flash-Next-GGUF), [`…-GSQ-RCO-GGUF`](https://huggingface.co/ukisai/Swift1.5-Qwen3.8-Flash-Next-GSQ-RCO-GGUF) — the llama.cpp route (what our Strata cluster runs)
+- [`Qwen/Qwen3.8-Flash-Next`](https://huggingface.co/Qwen/Qwen3.8-Flash-Next) — the base model
+- [`ukisai/Qwen3.8-27B-multi-turn-agent-sft`](https://huggingface.co/datasets/ukisai/Qwen3.8-27B-multi-turn-agent-sft) — Swift training data
+
+## Notes on how this was built (the unattended part)
+
+The conversion ran unattended under `scripts/supervise.sh`, which is the boring
+infrastructure that made 8 hours of unattended quantising safe: it watches for
+`ALL DONE`, re-launches `convert --resume` on a crash, refuses to start a conversion while
+a sushi **server** is running (a server wires ~50 GB and owns the RAM/GPU the trellis
+search needs), pauses when free disk drops below 60 GB, verifies pack integrity, runs the
+smoke test, and only deletes the 360 GB source **after** a green smoke test. It is
+single-instance (`flock`-style lockdir) and capped at 3 resumes so a systematic failure
+stops and asks for a human instead of eating the disk.
+
+Two lessons worth keeping:
+
+1. `--experts-k 2.625`, not `2.6` — see [The flags, and the one trap](#the-flags-and-the-one-trap).
+2. `scripts/04-verify-pack.py` skipped the `__header__` key and not `__metadata__` in an earlier
+   revision, and dutifully reported 52 "defective" shards on a perfectly healthy pack. Safetensors
+   headers contain `__metadata__`, which has no `data_offsets`. The current version skips both.
+
+— built 2026-10-24, `initialed85`, on a MacBook Pro (Mac14,6) with an Apple M2 Max, 12 cores, 64 GB. sushi 1.3.0, MLX 0.32.3, mlx-c `56b2d39`.

@@ -1,0 +1,96 @@
+{
+  "pack": "Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw",
+  "published_as": "initialed85/Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw",
+  "local_dir": "~/.sushi/models/beamster/Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw",
+  "built_utc": "2026-10-24T14:51:28Z",
+  "built_local": "2026-10-24 15:45 -> 23:46 AWST (UTC+8)",
+  "builder": "initialed85",
+  "purpose": "hobbyist, non-commercial",
+  "machine": {
+    "model": "Mac mini M2 (Mac14,6)",
+    "arch": "arm64-apple-darwin",
+    "os": "macOS 26.2 (25D2142)",
+    "ram_bytes": 68719476736,
+    "iogpu_wired_limit_mb": 60416,
+    "disk_used_for_build_gb": 401,
+    "disk_free_after_gb": 451
+  },
+  "toolchain": {
+    "sushi_version": "1.3.0",
+    "sushi_build": "MLX 0.32.3 | mlx-c 56b2d39 | arm64-apple-darwin26.2.0",
+    "command": "sushi convert exl3 --model <src> --out <pack> --experts-k 2.625 --codebook mcg --window 15 --batch 16",
+    "converter_policy_string": "sushi-encoder-1|n=42|mcg|w=15|trunk=8/64|calib=7f2a5b1413545d9daf73ef13f06769914c68693121cd86f1e2611bf8d5c419c3:65536|min_rows=64",
+    "flags_not_used": ["--factor-precision 32 (GPU float32: changes pack bytes, deliberately avoided)", "--calibration (sushi built-in 64k mix used)", "--imatrix (auto-skipped: ngram table present)", "--calib-chunks (auto: 14)"]
+  },
+  "source": {
+    "repo": "ukisai/Swift1.5-Qwen3.8-Flash-Next",
+    "url": "https://huggingface.co/ukisai/Swift1.5-Qwen3.8-Flash-Next",
+    "format": "HF safetensors, BF16, 131 shards",
+    "size_bytes": 360039201433,
+    "files_total": 149,
+    "files_downloaded": 148,
+    "files_skipped": ["benchmarks/gpqa-diamond-20260921.json (1.5 MB; converter only reads safetensors + tokenizer + config)"],
+    "files_verified_byte_exact": 148,
+    "gated": false,
+    "licenses": ["Swift Open License v1.0 (UkisAI)", "Qwen Community License 1.0 (Qwen, via Base Model)"],
+    "sha256_of_config": "04a9f699c31183e6e0c627187e4c2d7442f5a1a4c6d553ea5f53bd73e3067f3e",
+    "sha256_of_index": "1b1e430c8852bf342e77cd7e23d5ffad615f6a17ea81b7ce99b209a227b2f6f5"
+  },
+  "source_arch": {
+    "architectures": "Qwen4ExpForConditionalGeneration",
+    "model_type": "qwen4_exp",
+    "text": {"hidden_size": 2560, "num_hidden_layers": 48, "num_experts": 512, "num_experts_per_tok": 10, "vocab_size": 248320, "max_position_embeddings": 262144},
+    "mtp": {"num_speculative_tokens": 4, "mtp_num_hidden_layers": 1, "mtp_use_deduplicated_embeddings": false},
+    "vision": true,
+    "rope": {"rope_type": "default", "rope_theta": 10000000, "partial_rotary_factor": 0.25, "mrope_interleaved": true, "mrope_section": [11, 11, 10]}
+  },
+  "pack": {
+    "size_gib": 73.85,
+    "size_bytes_total": 79299035617,
+    "files": 69,
+    "shards_in_index": 52,
+    "tensors_in_index": 3069,
+    "safetensors_payload_bytes": 47261167608,
+    "safetensors_on_disk_bytes": 47261601960,
+    "ngram_table_bytes": 32000153944,
+    "expert_quant": {
+      "format": "exl3",
+      "k": 2.625,
+      "codebook": "mcg",
+      "window": 15,
+      "out_scales": "svh",
+      "encoder": "sushi-encoder-1",
+      "quantizer": "ldlq-rotated",
+      "calib_sha256": "7f2a5b1413545d9daf73ef13f06769914c68693121cd86f1e2611bf8d5c419c3",
+      "calib_tokens": 65536
+    },
+    "context": {"max_position_embeddings": 262144, "rope": "default (no YaRN)", "note": "beamster's published packs ship YaRN x4 -> 1048576; apply at serve time via --config-overrides if needed"},
+    "opposite_of_packed": "nothing opposite; self-contained inference pack (layout contract: sushi docs/pack-format.md)",
+    "weights_gib": 44.01,
+    "ngram_table_gib": 29.8
+  },
+  "matched_against": {
+    "repo": "beamster/Qwen3.8-Flash-Next-Sushi-2.6bpw",
+    "matching": ["format=exl3", "k=2.625", "codebook=mcg", "window=15", "out_scales=svh", "quantizer=ldlq-rotated"],
+    "differing": ["calibration: imatrix-diagonal (theirs) vs sushi built-in 64k mix (ours)", "converter: qwen4-exl3-2-upstream-skew (theirs) vs sushi 1.3.0 (ours)", "rope: YaRN x4 (theirs) vs default (ours)"]
+  },
+  "quality_metrics": {"kld": null, "perplexity": null, "nll": null, "note": "not measured; scripts/06-kld.sh runs it, requires the 360 GB BF16 teacher present",
+    "reference_bar_from_sushi_docs": {"published_Sushi_2bpw": {"kld_to_first_eos": 0.2080, "top1_pct": 85.94, "gib": 34.97},
+      "published_Sushi_2_6bpw": {"kld_to_first_eos": 0.1355, "top1_pct": 89.08, "gib": 43.95},
+      "published_Sushi_3bpw": {"kld_to_first_eos": 0.1036, "top1_pct": 90.31, "gib": 49.33},
+      "published_Sushi_4bpw": {"kld_to_first_eos": 0.0592, "top1_pct": 92.89, "gib": 63.68},
+      "protocol": "16 prompts x 512 tokens, scored to teacher first EOS (7186 positions), teacher dense KV, student kv8, weights resident, n-gram table excluded",
+      "source": "https://github.com/beamivalice/sushi/blob/main/docs/qwen4-kld.md"}},
+  "serving_verified": {
+    "when": "2026-10-25T01:29Z (14 min uptime at time of check)",
+    "command": "sushi serve --mtp --mtp-min-depth 1 --mtp-max-depth 4 --mtp-typical 0.2 --mtp-greedy-tail --host 0.0.0.0 --port 8088 --prefix-cache-entries 4 --prefix-cache-mem 0 --prefix-cache-disk 8GB --max-concurrent 4 --kv-quant 8 --temp 1.0 --top-p 0.95 --top-k 20 --ctx-size 131072 --prefill-chunk 32768 --qwen-gdn 16 --expert-pick-tolerance 0.3 --metrics --model ~/.sushi/models/beamster/Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw/",
+    "v1_models": {"id": "beamster/Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw", "loaded": true, "state": "ready", "bytes_resident": 47539286008, "bytes_on_disk": 47261601960, "context_length": 131072, "max_model_len": 131072, "batched_decode": true, "capabilities": ["chat", "tool_use", "streaming", "vision", "reasoning", "json_schema"]},
+    "system": "vm.memory_pressure 0, system-wide free 94%, iogpu.wired_limit_mb 60416"
+  },
+  "license_files_shipped": ["LICENSE", "LICENSE-QWEN", "NOTICE", "NOTICE-CONVERSION.md"],
+  "get_it": {
+    "sushi_pull": "NOT possible: sushi 1.3.0 restricts pull to the beamster org (NotBeamster)",
+    "sushi_run": "sushi run initialed85/Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw",
+    "hf_download": "hf download initialed85/Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw --local-dir ~/.sushi/models/beamster/Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw"
+  }
+}

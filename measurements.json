@@ -1,0 +1,86 @@
+{
+  "measured_on": "2026-10-24, Mac mini M2 (Mac14,6), 64 GB, macOS 26.2, sushi 1.3.0",
+  "download": {
+    "source": "ukisai/Swift1.5-Qwen3.8-Flash-Next",
+    "duration_s": 6600,
+    "bytes": 360039201433,
+    "avg_throughput_mbps": 59,
+    "link": "hardline ethernet (en7, ~33 MB/s net per bmon on the serving run); ~12 MB/s on WiFi",
+    "workers": 4,
+    "resumable": true
+  },
+  "convert_wall_clock": {
+    "start": "2026-10-24T15:45:41+08:00",
+    "first_launch_aborted": "2026-10-24T15:45 (BadFlagValue: --experts-k 2.6)",
+    "restart": "2026-10-24T15:45:20+08:00",
+    "complete": "2026-10-24T23:46:51+08:00",
+    "wall_s": 28571,
+    "phases_s": {
+      "tokenizer_and_calibration": 120,
+      "trunk_affine_8bit": 420,
+      "ngram_table_4bit_g32": 600,
+      "expert_layers_48": 27000,
+      "mtp_lmhead_embed_vision_index": 660
+    }
+  },
+  "per_layer_stage_medians_s": {
+    "read": 1.5, "hessian": 81.7, "prep": 79.3, "factor": 0.0, "wait": 2.2,
+    "scale": 88.2, "feedback": 38.2, "search": 354.4, "pack": 0.4, "sum": 646.1
+  },
+  "stage_hour_totals": {"search": 4.75, "scale": 1.18, "hessian": 1.09, "prep": 1.06, "feedback": 0.49, "other": 0.05, "sum": 8.62},
+  "per_layer_wall_minutes": {"median": 9.4, "min": 9.4, "max": 9.5},
+  "memory_peak": {
+    "convert_phase": {"rss_gb": 33, "wired_gb": 7},
+    "mtp_phase": {"rss_gb": 46, "wired_gb": 45, "mem_used_gb": 51.7, "mem_free_gb": 9.0},
+    "serving": {"wired_gb": 46, "mem_used_gb": 54.6, "mem_free_gb": 1.6, "caches_gb": 26.4}
+  },
+  "disk": {
+    "before_download_gb": 524,
+    "after_download_gb": 165,
+    "minimum_during_convert_gb": 111,
+    "after_source_delete_gb": 451,
+    "peak_requirement_gb": 401,
+    "net_cost_gb": 74
+  },
+  "inference": {
+    "prefill_tok_s": 72.7,
+    "decode_tok_s": 45.1,
+    "smoke_test": {"prompt": "Reply with exactly: PACK OK", "output": "PACK OK", "path": "mtp", "prefill_tok_s": 42.0, "decode_tok_s": 32.6, "note": "18-token prompt, 2-token answer: rates on a 20-token exchange, not a steady-state figure"},
+    "code_test": {
+      "prompt": "Write a Python function path_matches(pattern, path) supporting * and ? globs without using fnmatch. Give only the code.",
+      "tokens_streamed": "38 prompt + 269 generated",
+      "wall_s": 29.4,
+      "mtp_attempts": 89, "mtp_accepts": 181, "mtp_avg_per_round": 2.03,
+      "mtp_accept_pct": 81.5, "mtp_depth": 6,
+      "verdict": "correct two-pointer star-backtrack glob matcher, no fnmatch"
+    },
+    "preflight": {"weights_gb": 43.44, "needs_gb": 45.69, "available_gb": 58.00, "fits": true},
+    "kernels_observed": [
+      "exl3 n42 funnel arm=simdmat codebook=mcg dtype=float16 window=15",
+      "exl3-gemm simdgroup-matrix body n=42",
+      "gdn packed prework engaged Hk=16 Hv=48 S=17 B=1",
+      "gdn decode recur engaged S=1 Hk=16 Hv=48",
+      "attn-pd sushi_attn_pd qk=256 v=256 dispatches=1",
+      "mtp draft rerank engaged (3-bit coarse -> top-32 -> trunk re-score)",
+      "ngram speculative decoding engaged (mode=trellis)",
+      "prefill: hybrid scan, fused scan, chunked mmv (n42, window 15)"
+    ]
+  },
+  "serving_verified": {
+    "checked_utc": "2026-10-25T01:29Z",
+    "server_uptime_min": 14,
+    "v1_models": {"id": "beamster/Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw", "loaded": true, "state": "ready", "bytes_resident": 47539286008, "bytes_on_disk": 47261601960, "context_length": 131072, "max_model_len": 131072, "batched_decode": true, "capabilities": ["chat", "tool_use", "streaming", "vision", "reasoning", "json_schema"]},
+    "server_flags": "--mtp --mtp-min-depth 1 --mtp-max-depth 4 --mtp-typical 0.2 --mtp-greedy-tail --host 0.0.0.0 --port 8088 --prefix-cache-entries 4 --prefix-cache-mem 0 --prefix-cache-disk 8GB --max-concurrent 4 --kv-quant 8 --temp 1.0 --top-p 0.95 --top-k 20 --ctx-size 131072 --prefill-chunk 32768 --qwen-gdn 16 --expert-pick-tolerance 0.3 --metrics",
+    "system": {"vm_memory_pressure": 0, "system_wide_free_pct": 94, "iogpu_wired_limit_mb": 60416, "vm_stat_pages_free_gb": 0.10, "note": "pages free is near zero by design on a serving 64 GB Mac; vm.memory_pressure 0 is the signal that matters"}
+  },
+  "integrity": {
+    "shards": 52, "tensors": 3069, "index_entries": 3069, "unresolved_index_entries": 0,
+    "payload_bytes_vs_on_disk": "equal", "defects": 0
+  },
+  "sushi_list_verdict": {
+    "pack": "qwen3.8-flash-next:2.6bpw",
+    "published_size_gb": 73.7,
+    "this_mac": "fits",
+    "recommendation": "recommended for a 64 GB Mac (2bpw 64.8 / 2.6bpw 73.7 / 3bpw 79.1 / 4bpw 159.0 may-stream)"
+  }
+}

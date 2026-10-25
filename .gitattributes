@@ -1,0 +1,26 @@
+# Binaries ship via Xet/LFS. Nothing here is meant to be diffed as text.
+*.safetensors filter=lfs diff=lfs merge=lfs -text
+*.bin filter=lfs diff=lfs merge=lfs -text
+*.pt filter=lfs diff=lfs merge=lfs -text
+*.model filter=lfs diff=lfs merge=lfs -text
+*.mp4 filter=lfs diff=lfs merge=lfs -text
+*.png filter=lfs diff=lfs merge=lfs -text
+*.jpg filter=lfs diff=lfs merge=lfs -text
+*.jpeg filter=lfs diff=lfs merge=lfs -text
+*.webp filter=lfs diff=lfs merge=lfs -text
+*.ckpt filter=lfs diff=lfs merge=lfs -text
+*.onnx filter=lfs diff=lfs merge=lfs -text
+
+# Text artifacts that must stay plain
+*.json text
+*.jsonl text
+*.md  text
+*.txt text
+*.jinja text
+*.sh  text eol=lf
+*.py  text eol=lf
+.gitattributes text
+
+SHA256SUMS.txt text
+*.log text
+*.jsonl text
