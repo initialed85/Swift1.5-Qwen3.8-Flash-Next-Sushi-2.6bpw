@@ -68,7 +68,7 @@ curl -L https://github.com/beamivalice/sushi/releases/latest/download/sushi-bin-
 | n-gram embedding table | 4-bit affine, group 32, one 32.0 GB file `ngram_table.bin` (29.8 GiB), read from SSD, never wired into GPU memory |
 | vision tower (Qwen3-VL ViT) | included — image and video input work |
 | MTP head | included — speculative decoding |
-| context | native **262,144** tokens, **no YaRN** (see [Context](#context-and-the-one-intentional-difference)) |
+| context | native **262,144** tokens, **no YaRN** (see [Context](#context-and-the-differences-from-the-official-pack)) |
 | size | **73.85 GiB** = 79.30 GB across 69 files: 47 261 167 608 B of safetensors payload (52 shards, 47.26 GB on disk) + 32.00 GB n-gram table + tokenizer and card |
 | shards | 52 files, 3 069 tensors |
 
@@ -93,24 +93,29 @@ Kernels confirmed engaging in the log: `[exl3] n42 funnel … codebook=mcg windo
 `[exl3-gemm] simdgroup-matrix body n=42`, `[gdn] packed prework engaged: Hk=16 Hv=48`,
 `[attn-pd] sushi_attn_pd`, `[mtp] draft rerank engaged`, `[ngram] speculative decoding engaged`.
 
-No KLD/perplexity figures are published here — see [Quality](#quality-what-we-do-and-do-not-claim).
+Divergence against the official 2.6bpw pack **is** measured — see
+[Quality](#quality-what-we-do-and-do-not-claim). KLD against a BF16 teacher of *this* model is not.
 
 ### Live in production
 
-Serving verified 2026-10-25, 14 minutes after the model swap, on the same box:
+Serving verified 2026-10-25 on the same box, after the pack moved to
+`~/.sushi/models/initialed85/…` (the served model id follows the directory name):
 
 ```bash
-$ curl -s http://127.0.0.1:8088/v1/models | jq '.data[0] | {id,loaded,state,bytes_resident,bytes_on_disk,context_length,capabilities}'
+$ curl -s http://127.0.0.1:8088/v1/models | jq '.data[0] | {id,loaded,state,bytes_resident,bytes_on_disk,context_length}'
 {
-  "id": "beamster/Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw",
+  "id": "initialed85/Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw",
   "loaded": true, "state": "ready",
   "bytes_resident": 47539286008, "bytes_on_disk": 47261601960,
-  "context_length": 131072, "max_model_len": 131072, "batched_decode": true,
-  "capabilities": ["chat","tool_use","streaming","vision","reasoning","json_schema"]
+  "context_length": 262144, "max_model_len": 262144
 }
-$ sysctl vm.memory_pressure
-vm.memory_pressure: 0
 ```
+
+One behaviour worth knowing: this server **unloads the pack when idle** and reloads on the next
+request. An idle `/v1/models` answers `"loaded": false, "state": "unloaded", "bytes_resident": 0`
+and reports the pack's native `context_length: 262144`; after a request it reports `ready`,
+47.54 GB resident, and the `--ctx-size 131072` the server was started with. The first request
+after an idle period pays the load.
 
 `vm_stat` reports ~0.1 GB of *free* pages while serving; that is normal for a 64 GB Mac running a
 43 GB pack with an 8 GB disk prefix cache — `vm.memory_pressure: 0` and 94 % system-wide free is
@@ -127,10 +132,10 @@ conversion; **1 h 50 m** to download the 360 GB source; total **9 h 45 m** hands
 15:42  tree verify: 148/148 files byte-exact vs HF API
 15:45  sushi convert exl3  →  tokenizer load, vocab 248 320, chat template
 15:45 ─ 15:47  built-in calibration mix, 65 536 tokens
-15:47 ─ 15:54  trunk → affine 8/64 (model-trunk-00000..2.safetensors, 5.94 GB)
+15:47 ─ 15:54  trunk → affine 8/64 (model-trunk-00000..2.safetensors, 6.32 GB on disk)
 15:54 ─ 16:04  n-gram table → 4-bit/g32 (ngram_table.bin, 32.0 GB / 29.8 GiB)
-16:04 ─ 23:35  48 expert layers → EXL3 (layer-0..47.safetensors, ~797 MB each)
-23:35 ─ 23:44  MTP head (mtp-0.safetensors), lm_head, embed, index, vision tower
+16:04 ─ 23:35  48 expert layers → EXL3 (layer-0..47.safetensors, 836 MB each)
+23:35 ─ 23:44  MTP head (mtp-0.safetensors, 836 MB), index, final shard set
 23:46  ALL DONE · pack 74G · free 451G
 23:47  source deleted, pack integrity verified, smoke test green
 ```
@@ -218,7 +223,7 @@ sushi convert exl3 \
   `ngram_done`, `ngram_present`) and continues at the layer boundary, not from scratch. The
   unattended wrapper used it.
 
-## Context, and the one intentional difference
+## Context, and the differences from the official pack
 
 `config.json` in this pack keeps the native `max_position_embeddings: 262144` and
 `rope_type: default` — i.e. **no YaRN**. beamster's published packs ship **YaRN ×4 → 1 048 576
@@ -242,6 +247,29 @@ with its own `imatrix_sha256`; this pack records sushi's **built-in** 64k calibr
 Same encoder, same codebook, same window, same rate — **different calibration**. Do not expect
 bit-identical quality to the released 2.6bpw pack; expect the same rate and encoder.
 
+### Every structural difference we found, verified on disk
+
+Compared against `beamster/Qwen3.8-Flash-Next-Sushi-2.6bpw` downloaded whole (218 files,
+79.21 GB) on 2026-10-25:
+
+| | ours | theirs |
+|---|---|---|
+| `expert_quant` | `exl3 k=2.625 codebook=mcg window=15` | identical |
+| top-level `quantization_config` | `bits 8, group_size 64, affine` | identical |
+| **trunk linear group size** | inherits **64** (no per-tensor entries) | explicit per-tensor **`{bits: 8, group_size: 128}`** on every trunk linear, shared expert, self-attn, indexer, lm_head, MTP trunk |
+| weights in the index | 47.261 GB (44.01 GiB), 3 069 tensors | 47.186 GB (43.95 GiB), 3 070 tensors |
+| extra tensor | — | `layers.1.ple.ple_embedding.ngram_embedding.weight_scale` |
+| shard layout | 52 shards / 69 files: `layer-N.safetensors`, `mtp-0.safetensors`, embed + lm_head + vision inside the trunk shards | 203 shards / 218 files: `model-exl3-LNN-{gate,up,down}.safetensors`, `model-mtp.safetensors`, `model-embed/lm-head/vision` as separate files |
+| context | native 262 144, no YaRN | ships YaRN ×4 → 1 048 576 |
+| calibration | sushi built-in 64k mix | `imatrix-diagonal`, their own `imatrix_sha256` |
+| n-gram table | 4-bit g32, 29.8 GiB | same file, same table |
+| tokenizer | 248 044 base tokens, 33 added tokens | **0 id mismatches** against ours; `vocab.json`/`merges.txt` byte-identical |
+
+The two layout families are both read by sushi 1.3.0 through `model.safetensors.index.json`; the
+per-projection layout is the older writer (their KLD rows were measured on binary `ad5e6be8`, ours
+built on 1.3.0), so it is version drift, not a fault. The `--trunk-group 128` difference is the one
+that would change pack bytes on a rebuild, and it is the likely reason we sit +0.06 GiB heavier.
+
 ## Quality: what we do and do not claim
 
 Claimed, and reproducible with `scripts/05-smoke-test.sh` on a 64 GB M2:
@@ -254,7 +282,51 @@ Claimed, and reproducible with `scripts/05-smoke-test.sh` on a 64 GB M2:
 
 Not claimed: KLD, perplexity, NLL, or any benchmark score vs the BF16 Swift checkpoint. sushi
 ships the tool for exactly that (`scripts/06-kld.sh`), which needs the 360 GB BF16 teacher
-present. The bar to beat, from sushi's own tables
+present — and we deleted ours after conversion to reclaim the disk. What we *have* measured is
+the pack's divergence from the official 2.6bpw of the base model, on identical prompts.
+
+### Measured 2026-10-25 — divergence vs the official 2.6bpw pack
+
+Protocol: sushi's `standard4` fixture (two code + two prose prompts, raw text, no chat template),
+512 greedy tokens each, `top-k 10`, `--ctx-size 8192`, teacher arms `--kv-quant off` (bf16),
+students scored at the served `--kv-quant 8`, `MLX_ENABLE_TF32=0`, `--qwen-gdn 32 --no-mtp`,
+weights resident. Captured from each pack, then each pack scored against each fixture.
+Full JSONs and per-prompt detail: [`measurements/kld/table.md`](measurements/kld/table.md).
+
+| fixture → student | arms | KLD all | KLD to first EOS | top-1 to EOS | NLL to EOS | positions to EOS |
+|---|---|---|---|---|---|---|
+| ours → itself | bf16 | **0.0000** | **0.0000** | **100.00 %** | 0.4478 | 956 |
+| theirs → itself | bf16 | **0.0000** | **0.0000** | **100.00 %** | 0.3093 | 1 286 |
+| ours fixture → theirs (kv8) | affine8 | 0.0794 | 0.0954 | 85.77 % | 0.5422 | 956 |
+| theirs fixture → ours (kv8) | affine8 | 0.0726 | 0.0758 | 91.45 % | 0.3539 | 1 286 |
+
+What that does and does not say:
+
+- **The harness is sound.** Both self rows are exactly 0 KLD, 100 % top-1, cosine loss 0 — the
+  capture and the score agree bit for bit on the same binary and arms, so the cross rows are
+  measuring the packs and not the tooling.
+- **The two packs are close.** On the same four prompts they agree on 86–92 % of content
+  positions and sit 0.076–0.095 nats apart. That is a *fingerprint between two different models*
+  (Swift 1.5 vs base Qwen, each quantised at 2.6 bpw), not a KLD-to-teacher, and it is not
+  comparable with sushi's published 16×512 wikitext readings.
+- **Quantisation is the bigger effect than the model swap.** sushi's own 2.6bpw-vs-BF16-teacher
+  reading is 0.1355; the whole Swift-vs-base difference at 2.6 bpw is smaller than that on this
+  screen. Different fixture, so treat it as indicative — but it is the reason we are comfortable
+  shipping at this rate.
+- **Our pack ends its turn earlier** on these prompts (956 scored positions before the first EOS
+  vs their 1 286). Behavioural, not a quality claim.
+- The cross rows carry the served kv8 penalty; the self rows do not. A kv8-armed self row would
+  separate the two and has not been run.
+
+Reproduce (server must be stopped — the capture needs ~13 GB of GPU headroom):
+
+```bash
+scripts/08-capture.sh            # fixtures -> ~/kld/<pack>/standard4, gated by pack-check.py
+scripts/09-compare.sh            # every pack x every fixture -> measurements/kld/*.json
+scripts/10-kld-table.py measurements/kld   # the table above
+```
+
+The bar to beat, from sushi's own tables
 ([`docs/qwen4-kld.md`](https://github.com/beamivalice/sushi/blob/main/docs/qwen4-kld.md)):
 
 | pack | GiB | KLD (to first EOS) | top-1 |
@@ -263,32 +335,41 @@ present. The bar to beat, from sushi's own tables
 | Sushi-3bpw, published 2026-09-29 | 49.33 | 0.1036 | 90.31 % |
 | Sushi-4bpw, published 2026-09-29 | 63.68 | 0.0592 | 92.89 % |
 | Sushi-2bpw, published (bf16 KV) | 34.97 | 0.2080 | 85.94 % |
-| *this pack* | 44.01 GiB of weights + 29.8 GiB table = 73.85 GiB | *not measured* | *not measured* |
+| *this pack* | 44.01 GiB of weights + 29.8 GiB table = 73.85 GiB | *not measured vs a BF16 teacher* | *not measured* |
 
-House protocol: 16 prompts × 512 tokens, scored to the teacher's first end-of-turn token (7 186
+House protocol for that bar: 16 prompts × 512 tokens, scored to the teacher's first end-of-turn
+token (7 186
 positions); teacher captured with a dense KV cache, students scored at `--kv-quant 8`; weights
 resident; the n-gram table is excluded from the GiB column. Quote the first-EOS number, with the
 all-positions number beside it. Same rate, same encoder, same window — so expect the region
 around **0.13–0.15**, with our built-in calibration (not beamster's imatrix) as the reason it will
-not be 0.1355 exactly.
+not be 0.1355 exactly. Closing that gap needs the 360 GB BF16 source re-downloaded; the harness
+is now built and proven, so it is a fetch and ~40 minutes of GPU, not an unknown.
 
 ## File map
 
 ```
 model.safetensors.index.json        3 069 tensors → 52 shards
-model-trunk-00000..2.safetensors    dense/affine 8-bit, 5.94 GB
+model-trunk-00000..2.safetensors    6.32 GB — dense/affine 8-bit, 2 628 tensors: embed, lm_head,
+                                      trunk linears, vision tower, MTP fc/norm
 ngram_table.bin                     32.0 GB (29.8 GiB), 4-bit/g32, SSD-resident
-layer-0..47.safetensors             EXL3 experts, ~797 MB each
-mtp-0.safetensors                   MTP head, 96 MB
-model-lm-head.safetensors · model-embed.safetensors · model-vision.safetensors
+layer-0..47.safetensors             EXL3 experts, 836 MB each (9 tensors per shard: gate/up/down ×
+                                      suh/svh/trellis)
+mtp-0.safetensors                   836 MB — the MTP layer's routed experts, same 9-tensor shape
+                                      as a decoder layer
 config.json · generation_config.json · chat_template.jinja
-tokenizer.json · tokenizer.config.json · tokenizer.sushi.json · vocab.json · merges.txt ·
-  vocab.filemap.json · preprocessor_config.json · video_preprocessor_config.json
+tokenizer.json · tokenizer_config.json · vocab.json · merges.txt ·
+  preprocessor_config.json · video_preprocessor_config.json
 LICENSE · LICENSE-QWEN · NOTICE        carried through from the source, unmodified
 ukisai-banner.png · swift-1.5-flash-next-demo.mp4   media from the source repo
-README-SOURCE.md      the source repo's own model card, verbatim (it is README.md in the pack dir;
-                      it ships under this name so it cannot overwrite this card on HF)
+README.md           the source repo's own model card, verbatim, in the pack dir (it is published
+                    to HF as README-SOURCE.md so it cannot overwrite this card)
 ```
+
+69 files. This list is `ls` of the pack directory, not the converter's log — an earlier revision of
+this card described beamster's layout (`model-lm-head/embed/vision.safetensors`,
+`tokenizer.sushi.json`, `vocab.filemap.json`) as if it were ours, and understated the trunk and
+MTP sizes; those files do not exist in this pack. See [docs/BUILD.md](docs/BUILD.md).
 
 Checksums of all 74 GB: [`SHA256SUMS.txt`](SHA256SUMS.txt) — 69 files, paths as they are in the pack
 dir (`shasum -a 256 -c SHA256SUMS.txt` run from inside it; `README.md` is published under the name

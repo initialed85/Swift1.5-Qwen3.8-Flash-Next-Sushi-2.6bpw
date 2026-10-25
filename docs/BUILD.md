@@ -91,10 +91,10 @@ The converter's own stages, from the log:
 |---|---|---|
 | 15:45:41 | tokenizer load, vocab 248 320, chat template | — |
 | 15:45–15:47 | built-in calibration mix, 65 536 tokens (14 chunks auto) | `calib_sha256 7f2a5b14…` |
-| 15:47–15:54 | dense/trunk → 8-bit affine, group 64 | `model-trunk-00000..2.safetensors`, 5.94 GB |
+| 15:47–15:54 | dense/trunk → 8-bit affine, group 64 | `model-trunk-00000..2.safetensors`, 6.32 GB on disk (2 628 tensors: embed, lm_head, trunk linears, vision tower, MTP fc/norm) |
 | 15:54–16:04 | n-gram embedding table → 4-bit affine, group 32 | `ngram_table.bin`, 32.0 GB (29.8 GiB) |
-| 16:04–23:35 | 48 routed-expert layers → EXL3 2.625 bpw, `mcg`, `w=15` | `layer-0..47.safetensors`, ~797 MB each |
-| 23:35–23:44 | MTP head, lm_head, embed, vision tower, index | `mtp-0.safetensors`, `model-lm-head.safetensors`, `model-embed.safetensors`, `model-vision.safetensors`, `model.safetensors.index.json` |
+| 16:04–23:35 | 48 routed-expert layers → EXL3 2.625 bpw, `mcg`, `w=15` | `layer-0..47.safetensors`, 836 MB each |
+| 23:35–23:44 | MTP head, index | `mtp-0.safetensors` (836 MB — the MTP layer's routed experts, same 9-tensor shape as a decoder layer), `model.safetensors.index.json` |
 | 23:46:51 | `ALL DONE` | 74 GB pack, 451 GB free (after source delete) |
 
 Per layer, 48 samples, medians: `search 354.4 s`, `scale 88.2 s`, `hessian 81.7 s`,
@@ -151,7 +151,7 @@ The order is deliberate: **the source is deleted last**, after integrity *and* g
 A pack that fails smoke keeps its 360 GB source so the run is reproducible; a pack that passes
 costs you nothing more.
 
-## Failures we hit (both are in the scripts now as guards)
+## Failures we hit (each one became a guard in the scripts)
 
 **1. `--experts-k 2.6` → `error: BadFlagValue: --experts-k expects <float>; use 'help' to list valid choices`**
 
@@ -170,6 +170,35 @@ A safetensors header contains `__header__` **and `__metadata__`**, neither of wh
 and neither of which has `data_offsets`. The first version skipped `__header__` only. The pack
 was fine; the checker was wrong. `04-verify-pack.py` skips both keys and also checks payload
 bytes vs on-disk bytes and index closure (every index entry → an existing shard).
+
+**3. `MissingMimoShard` from a half-downloaded pack**
+
+The first fixture capture crashed with `error: MissingMimoShard` a few seconds in — after the
+tokenizer loaded and the expert streamer came up, before any prompt was scored. The pack it was
+pointed at was `beamster/Qwen3.8-Flash-Next-Sushi-2.6bpw` mid-download: 26 GB of 79 GB on disk.
+The index named 203 shards; most were not there yet.
+
+The actual bug was mine and it is worth writing down because it is invisible in bash: splitting a
+list with `IFS=',' read -r -d '' -a ARR <<<"$LIST"` makes `read` consume the here-string *including
+its trailing newline*, so the last element was `"theirs\n"`. Every `[[ $p == theirs ]]` test then
+silently failed, the incomplete-pack skip was bypassed, and directories and log files were created
+with newlines in their names. Fixed with an explicit `split_csv()` and a `clean()` that restricts
+labels to `[A-Za-z0-9._-]`, and `scripts/pack-check.py` now gates every pack — index closure,
+shard bytes vs `total_size`, no `.incomplete` parts, n-gram table and tokenizer present — before
+any GPU work. A pack that cannot load is a two-second CPU finding, not a failure ten seconds into a
+capture with the GPU wired up to its limit.
+
+**4. The file map on the card described the wrong pack**
+
+`README.md` and `NOTICE-CONVERSION.md` listed `model-lm-head.safetensors`, `model-embed.safetensors`,
+`model-vision.safetensors`, `tokenizer.sushi.json` and `vocab.filemap.json`, and gave the trunk as
+5.94 GB and the MTP head as 96 MB. None of those files exist in this pack and both sizes are wrong:
+they are beamster's shard layout and figures, picked up while reading their card, and the sizes were
+guesses rather than `ls`. Corrected against the pack directory: 69 files, 52 shards, trunk 6.32 GB
+(2 628 tensors — embed, lm_head, vision tower and MTP fc/norm all live in the trunk shards),
+`mtp-0.safetensors` 836 MB, layer shards 836 MB each. The converter log has no timestamps, so the
+stage table's times come from shard mtimes (trunk 15:51:43, n-gram 15:54:49, layer-0 16:04:25,
+layer-47 23:35:13, mtp-0 + index + config 23:44:34).
 
 Both are the same lesson in different clothes: **verify the checker before trusting the verdict**
 — and never let a checker's word be the thing that deletes 360 GB.

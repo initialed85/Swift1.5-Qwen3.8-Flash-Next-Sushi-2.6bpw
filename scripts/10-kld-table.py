@@ -1,52 +1,76 @@
 #!/usr/bin/env python3
-"""10-kld-table.py — render sushi kld compare JSONs as a markdown table.
+"""10-kld-table.py — render `sushi kld compare` JSONs as a markdown table.
 
-Usage: 10-kld-table.py <dir-of-compare.json> [--json-out FILE]
+Usage: 10-kld-table.py <dir-of-compare.json> [--csv out.csv]
 
-compare's JSON schema is not documented, so this flattens every file and picks the
-headline numbers by name, then prints a full appendix of every scalar it found. If a
-key is missing the cell prints as '-' and the appendix shows what was there.
+Schema read here is `mlx-serve-kld-compare-v1` (sushi 1.3.0):
 
-Reading the table:
-  self rows (pack vs its own fixture, same binary/arms) MUST be 0 KLD and 100% top-1.
-  Anything else is engine nondeterminism, not quality.
-  cross rows are divergence between two quantisations of two DIFFERENT models.
+  mean_kld / mean_kld_to_eos           KLD, all positions and the to-first-EOS subset
+  mean_top1 / mean_top1_to_eos         top-1 agreement, as a fraction
+  mean_nll / mean_nll_to_eos           student NLL on the fixture's token path
+  mean_cosine_loss / worst_cosine_loss cosine distance of the logit vectors
+  positions / positions_to_eos         how many rows those means cover
+  prompts[]                            per-prompt copy of all of the above, plus eos_pos
+
+Reading the output:
+  * A self row (pack vs its own fixture, same binary and arms) must be 0 KLD / 100 % top-1.
+    Anything else is engine nondeterminism, not quality.
+  * A cross row between two packs of two DIFFERENT models is a divergence fingerprint, not a
+    KLD-to-teacher, and it is not comparable with sushi's published 16x512 wikitext rows.
+  * Students here are scored at the served --kv-quant 8 against a bf16-KV fixture, so a cross
+    row contains the kv8 penalty as well as the pack difference. Self rows use the capture's
+    own arms (bf16), so they do not.
 """
+import csv
 import glob
 import json
 import os
 import sys
 
-def norm(key):
-    return key.lower().replace("-", "").replace("_", "").replace(".", "")
+SELF_KEYS = ("self-ours", "self-theirs")
 
-def pick(cells, wanted, exclude=()):
-    hits = []
-    for depth, key, raw, val in cells:
-        n = norm(key)
-        if not wanted(n):
-            continue
-        if any(x in n for x in exclude):
-            continue
-        if isinstance(val, (int, float)):
-            hits.append((depth, key, val))
-    hits.sort(key=lambda t: (t[0], len(t[1])))  # shallowest, then shortest name
-    return hits
 
-COLUMNS = [
-    ("KLD all positions", lambda n: "kld" in n and "eos" not in n and "bin" not in n),
-    ("KLD to first EOS", lambda n: "kld" in n and "eos" in n),
-    ("top-1", lambda n: ("top1" in n or "topagreement" in n or "agreement" in n)),
-    ("NLL", lambda n: "nll" in n),
-    ("positions", lambda n: "position" in n and any(x in n for x in ("count", "total", "n", "num"))),
-]
+def pct(x):
+    return "-" if x is None else f"{100 * x:.2f} %"
 
-def fmt(v):
-    if isinstance(v, float):
-        return f"{v:.4f}" if abs(v) < 1000 else f"{v:.1f}"
-    return str(v)
 
-def main():
+def num(x, nd=4):
+    return "-" if x is None else f"{x:.{nd}f}"
+
+
+def role_of(d):
+    """Which pack was scored, from the compare JSON itself."""
+    m = (d.get("model") or "").replace("\\", "/")
+    if "initialed85" in m:
+        return "ours"
+    if "beamster" in m:
+        return "theirs"
+    return os.path.basename(m.rstrip("/")) or "?"
+
+
+_fx = {}
+
+
+def fixture_of(d):
+    """Which pack a fixture was captured from - read its baseline.json, not the label."""
+    f = (d.get("fixture") or "").replace("\\", "/").rstrip("/")
+    if f in _fx:
+        return _fx[f]
+    role = None
+    try:
+        base = json.load(open(os.path.join(f, "baseline.json")))
+        m = (base.get("model") or "").replace("\\", "/")
+        role = "ours" if "initialed85" in m else "theirs" if "beamster" in m else None
+    except Exception:  # noqa: BLE001
+        pass
+    if role is None:
+        n = os.path.basename(f)
+        role = {"ours": "ours", "theirs": "theirs"}.get(n, n or "?")
+    _fx[f] = role
+    return role
+
+
+def main() -> int:
     if len(sys.argv) < 2:
         print(__doc__)
         return 2
@@ -59,70 +83,94 @@ def main():
     rows = []
     for f in files:
         try:
-            data = json.load(open(f))
+            j = json.load(open(f))
         except Exception as e:  # noqa: BLE001
-            rows.append({"name": os.path.basename(f), "err": str(e), "cells": []})
+            rows.append({"name": os.path.basename(f), "err": str(e), "j": {}})
             continue
-        cells = []
-        def walk(o, pre="", depth=0):
-            if isinstance(o, dict):
-                for k, v in o.items():
-                    walk(v, f"{pre}{k}.", depth + 1)
-            elif isinstance(o, list):
-                for i, v in enumerate(o[:2]):
-                    walk(v, f"{pre}{i}.", depth + 1)
-            else:
-                cells.append((depth, pre.rstrip("."), pre.rstrip("."), o))
-        walk(data)
-        name = os.path.basename(f)[:-5]
-        row = {"name": name, "cells": cells, "err": None}
-        for col, want in COLUMNS:
-            hits = pick(cells, want)
-            row[col] = fmt(hits[0][2]) if hits else "-"
-            if len(hits) > 1:
-                row[col] += f"  ({hits[0][1]})"
-        label = data.get("label") if isinstance(data, dict) else None
-        row["label"] = label or name
-        rows.append(row)
+        if not isinstance(j, dict) or "mean_kld" not in j:
+            rows.append({"name": os.path.basename(f), "err": "not a compare JSON", "j": j})
+            continue
+        s, t = role_of(j), fixture_of(j)
+        rows.append({
+            "name": os.path.basename(f)[:-5],
+            "err": None,
+            "j": j,
+            "fixture_kind": (j.get("label") or "").split("__")[0].split("-")[0],
+            "pair": f"{t} fixture \u2192 {s}" if s != t else f"{s} \u2192 itself",
+            "self": s == t,
+            "kld": j.get("mean_kld"),
+            "kld_eos": j.get("mean_kld_to_eos"),
+            "top1": j.get("mean_top1"),
+            "top1_eos": j.get("mean_top1_to_eos"),
+            "nll": j.get("mean_nll"),
+            "nll_eos": j.get("mean_nll_to_eos"),
+            "cos": j.get("mean_cosine_loss"),
+            "worst": j.get("worst_cosine_loss"),
+            "pos": j.get("positions"),
+            "pos_eos": j.get("positions_to_eos"),
+            "kv": j.get("kv_cache_format"),
+        })
 
-    order = {"standard4": 0, "ours16": 1}
-    def key(r):
-        kind = r["name"].split("__")[0]
-        return (order.get(kind, 9), "self" in r["name"], r["name"])
+    rows.sort(key=lambda r: (r.get("fixture_kind", "?"), not r.get("self", False), r["name"]))
 
-    rows.sort(key=key)
-    cols = [c for c, _ in COLUMNS]
-    print("| fixture | row | " + " | ".join(cols) + " |")
-    print("|---|---|" + "---|" * len(cols))
-    for r in rows:
-        kind, pair = (r["name"].split("__") + [""])[:2]
-        print(f"| {kind} | {pair} | " + " | ".join(r.get(c, "-") for c in cols) + " |")
+    print("# KLD measurements")
     print()
-    print("Self rows (pack vs its own fixture) must read 0 KLD / 100% top-1 on the same binary;")
-    print("a nonzero self row is engine nondeterminism, not quality. Cross rows compare two")
-    print("quantisations of two DIFFERENT models (Swift 1.5 vs base Qwen) — a fingerprint, not")
-    print("a KLD-to-teacher, and not comparable with sushi's published 16x512 wikitext rows.")
+    print(f"Source: `sushi kld compare`, schema `{rows[0]['j'].get('schema', '?')}`, "
+          f"{len(rows)} rows. Fixture protocol: standard4 (2 code + 2 prose, raw text, no chat "
+          "template), 512 greedy tokens per prompt, top-k 10, ctx 8192, teacher arms bf16 KV.")
     print()
-    print("## Appendix — every scalar in each compare JSON")
+    print("| fixture | row (fixture \u2192 student) | KLD all | KLD to first EOS | top-1 | top-1 to EOS | NLL | NLL to EOS | cos loss | positions | student KV |")
+    print("|---|---|---|---|---|---|---|---|---|---|---|")
     for r in rows:
-        print(f"\n### {r['name']}")
         if r["err"]:
-            print(f"read failed: {r['err']}")
+            print(f"| ? | {r['name']} | read failed: {r['err']} | | | | | | | | |")
             continue
-        seen = set()
-        for depth, key, raw, val in r["cells"]:
-            if key in seen:
-                continue
-            seen.add(key)
-            if isinstance(val, (int, float)) and not isinstance(val, bool):
-                print(f"- `{key}` = {val}")
-            elif isinstance(val, str) and len(val) < 120:
-                print(f"- `{key}` = {val!r}")
-            elif isinstance(val, str):
-                print(f"- `{key}` = <{len(val)} chars>")
-            else:
-                print(f"- `{key}` = {val}")
+        print(f"| {r.get('fixture_kind')} | {r['pair']} | {num(r['kld'])} | {num(r['kld_eos'])} | "
+              f"{pct(r['top1'])} | {pct(r['top1_eos'])} | {num(r['nll'])} | {num(r['nll_eos'])} | "
+              f"{num(r['cos'])} | {r['pos']} / {r['pos_eos']} | {r['kv']} |")
+    print()
+    print("Self rows (a pack against its own fixture, same binary and arms) are the harness "
+          "check: they must read 0 KLD and 100 % top-1. Cross rows between two packs of two "
+          "**different models** are a divergence fingerprint, not a KLD-to-teacher, and are not "
+          "comparable with sushi's published 16x512 wikitext readings. Students in cross rows "
+          "carry the served kv8 penalty; self rows do not.")
+
+    # per-prompt detail
+    print()
+    print("## Per-prompt detail (to first EOS)")
+    print()
+    ids = None
+    for r in rows:
+        if r["err"] or not r["j"].get("prompts"):
+            continue
+        if ids is None:
+            ids = [p.get("id", "?") for p in r["j"]["prompts"]]
+            print("| row | " + " | ".join(i.replace("_", " ") for i in ids) + " |")
+            print("|---|" + "---|" * len(ids))
+        ps = r["j"]["prompts"]
+        cells = []
+        for p in ps[: len(ids)]:
+            pe = p.get("positions_to_eos") or 0
+            cells.append(f"{num(p.get('kld_to_eos'))} / {pct((p.get('top1_to_eos') or 0) / pe) if pe else '-'}")
+        print(f"| {r['name']} | " + " | ".join(cells) + " |")
+    print()
+    print("Cells are `KLD / top-1 agreement`.")
+
+    if "--csv" in sys.argv:
+        out = sys.argv[sys.argv.index("--csv") + 1]
+        with open(out, "w", newline="") as fh:
+            w = csv.writer(fh)
+            w.writerow(["row", "fixture_kind", "pair", "is_self", "kld", "kld_to_eos", "top1",
+                        "top1_to_eos", "nll", "nll_to_eos", "cosine_loss", "worst_cosine_loss",
+                        "positions", "positions_to_eos", "kv_cache_format"])
+            for r in rows:
+                w.writerow([r["name"], r.get("fixture_kind"), r.get("pair"), r.get("self"),
+                            r.get("kld"), r.get("kld_eos"), r.get("top1"), r.get("top1_eos"),
+                            r.get("nll"), r.get("nll_eos"), r.get("cos"), r.get("worst"),
+                            r.get("pos"), r.get("pos_eos"), r.get("kv")])
+        print(f"\ncsv -> {out}")
     return 0
+
 
 if __name__ == "__main__":
     sys.exit(main())
