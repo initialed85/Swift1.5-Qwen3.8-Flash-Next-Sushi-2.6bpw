@@ -5,6 +5,11 @@ license_link: LICENSE
 base_model: ukisai/Swift1.5-Qwen3.8-Flash-Next
 base_model_relation: quantized
 pipeline_tag: image-text-to-text
+title: Swift 1.5 Qwen3.8-Flash-Next — Sushi 2.6bpw
+images:
+- ukisai-banner.png
+video:
+- swift-1.5-flash-next-demo.mp4
 tags:
 - sushi
 - exl3
@@ -280,10 +285,14 @@ config.json · generation_config.json · chat_template.jinja
 tokenizer.json · tokenizer.config.json · tokenizer.sushi.json · vocab.json · merges.txt ·
   vocab.filemap.json · preprocessor_config.json · video_preprocessor_config.json
 LICENSE · LICENSE-QWEN · NOTICE        carried through from the source, unmodified
-README.md · ukisai-banner.png · swift-1.5-flash-next-demo.mp4   from the source repo
+ukisai-banner.png · swift-1.5-flash-next-demo.mp4   media from the source repo
+README-SOURCE.md      the source repo's own model card, verbatim (it is README.md in the pack dir;
+                      it ships under this name so it cannot overwrite this card on HF)
 ```
 
-Checksums of all 74 GB: [`SHA256SUMS.txt`](SHA256SUMS.txt) (`shasum -a 256 -c SHA256SUMS.txt`).
+Checksums of all 74 GB: [`SHA256SUMS.txt`](SHA256SUMS.txt) — 69 files, paths as they are in the pack
+dir (`shasum -a 256 -c SHA256SUMS.txt` run from inside it; `README.md` is published under the name
+`README-SOURCE.md`).
 Machine-readable provenance: [`provenance.json`](provenance.json). Raw measurements:
 [`measurements.json`](measurements.json).
 
@@ -310,7 +319,8 @@ Two licences apply, and both travel with this pack:
 derivatives: *"including merged, quantized, or otherwise converted weights that incorporate the
 Base Model, You must also give recipients a copy of the Base Model License."* So `LICENSE`,
 `LICENSE-QWEN` and `NOTICE` are all redistributed unchanged, and §4(b)'s change notice is
-[`NOTICE-CONVERSION.md`](NOTICE-CONVERSION.md). The source repo is **not gated**.
+[`NOTICE-CONVERSION.md`](NOTICE-CONVERSION.md). The source repo is **not gated**, and its own card
+travels with the pack verbatim as [`README-SOURCE.md`](README-SOURCE.md).
 
 This is a hobbyist build for personal/research use. If you work somewhere above the thresholds,
 get the licences from UkisAI and Qwen before any commercial use.

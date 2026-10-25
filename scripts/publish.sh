@@ -37,7 +37,7 @@ done
 
 CARD_FILES=(README.md LICENSE LICENSE-QWEN NOTICE NOTICE-CONVERSION.md .gitattributes
             SHA256SUMS.txt provenance.json measurements.json)
-CARD_DIRS=(scripts docs)
+CARD_DIRS=(scripts docs logs)
 
 echo "repo : $REPO  $( [[ "$PRIVATE" == 1 ]] && echo '(private)' ) "
 echo "card : $CARD_DIR"
@@ -65,12 +65,21 @@ for d in "${CARD_DIRS[@]}"; do
 done
 
 # 3) weights, one file at a time (Xet/LFS; ~40 min at 30 MB/s up on the hardline)
+#
+# The pack root carries the SOURCE repo's own README.md, LICENSE, LICENSE-QWEN and NOTICE.
+# The licence trio is byte-identical to the copies we publish from CARD_DIR, so skip it here.
+# The source README must NOT land at the repo root — it would overwrite our card — so it ships
+# as README-SOURCE.md, verbatim, for attribution.
 cd "$PACK"
 total=$(find . -type f ! -name '.DS_Store' | wc -l | tr -d ' ')
 i=0
 for f in $(find . -type f ! -name '.DS_Store' | sort); do
   i=$((i+1))
   rel="${f#./}"
+  case "$rel" in
+    LICENSE|LICENSE-QWEN|NOTICE) echo "pack  [$i/$total] $rel (skipped: card copy published at root)"; continue ;;
+    README.md) rel="README-SOURCE.md"; echo "pack  [$i/$total] $rel (was README.md at pack root: keeps our card)" ;;
+  esac
   echo "pack  [$i/$total] $rel ($(du -sh "$f" | cut -f1))"
   "$HF" upload "$REPO" "$f" "$rel" --repo-type model --commit-message "$COMMIT_MSG"
 done
@@ -90,8 +99,8 @@ for root, _, files in os.walk(pack):
         if f == ".DS_Store": continue
         p = os.path.relpath(os.path.join(root, f), pack)
         local[p] = os.path.getsize(os.path.join(root, f))
-missing = [p for p in local if p not in remote]
-mismatch = [p for p in local if p in remote and local[p] != remote[p]]
+missing = [p for p in local if ("README-SOURCE.md" if p == "README.md" else p) not in remote]
+mismatch = [p for p in local if p != "README.md" and ("README-SOURCE.md" if p == "README.md" else p) in remote and local[p] != remote["README-SOURCE.md" if p == "README.md" else p]]
 print(f"pack files: {len(local)}   repo files: {len(remote)}   missing: {len(missing)}   size mismatch: {len(mismatch)}")
 for m in missing[:15]: print("   MISSING", m)
 for m in mismatch[:15]: print("   SIZE", m, local[m], remote[m])
