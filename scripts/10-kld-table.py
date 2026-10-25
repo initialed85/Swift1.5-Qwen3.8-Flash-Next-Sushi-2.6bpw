@@ -17,19 +17,6 @@ import json
 import os
 import sys
 
-def flatten(obj, prefix=""):
-    out = []
-    if isinstance(obj, dict):
-        for k, v in obj.items():
-            out += flatten(v, f"{prefix}{k}.")
-    elif isinstance(obj, list):
-        out.append((prefix.rstrip("."), f"list[{len(obj)}]"))
-        for i, v in enumerate(obj[:2]):
-            out += flatten(v, f"{prefix}{i}.")
-    elif isinstance(obj, (int, float, str, bool)) or obj is None:
-        out.append((prefix.rstrip("."), obj))
-    return out
-
 def norm(key):
     return key.lower().replace("-", "").replace("_", "").replace(".", "")
 
@@ -76,7 +63,6 @@ def main():
         except Exception as e:  # noqa: BLE001
             rows.append({"name": os.path.basename(f), "err": str(e), "cells": []})
             continue
-        flat = flatten(data)
         cells = []
         def walk(o, pre="", depth=0):
             if isinstance(o, dict):
