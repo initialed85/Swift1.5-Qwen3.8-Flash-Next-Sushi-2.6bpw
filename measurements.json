@@ -330,7 +330,6 @@
    "stopped_token_cap": 0,
    "errors": 0,
    "ungraded_empty_text": 3,
-   "ungraded_note": "3 cases (HumanEval_43, HumanEval_116, mbpp_765) returned output tokens but no extractable function text; llmprobe marks them passed=null and counts them as misses; a formatting/extraction miss, not a graded logic failure",
    "mean_output_tokens_per_question": 663.0,
    "mean_reasoning_tokens_per_question": 565.0,
    "wall_s": 2089.0,
@@ -338,7 +337,8 @@
    "report": "measurements/eval/initialed85_Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw__code-20261025T104500Z.json",
    "report_sha256": "d94cfad16d8a362e321432a79f7621e00f7aa89199b2309f2f6c6a4f85eba366",
    "contamination": "none measured \u2014 dedicated engine, no other inference during the run",
-   "status": "clean"
+   "status": "clean",
+   "empty_text_note": "3 of the 19 graded failures returned output tokens but no extractable function text (HumanEval_43_pairs_sum_to_zero, HumanEval_116_sort_array, mbpp_765_is_polite); llmprobe grades them status=failed like any other miss, so they are counted as misses, not as ungraded. Per-case verdicts live in the `status` field (81 passed / 19 failed), which reconciles exactly with bySource."
   }
  }
 }
