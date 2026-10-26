@@ -611,6 +611,7 @@
     "measured_utc": "20261026T014426Z"
    },
    "finding": "Olympiad at PRODUCTION arms is 0/10 for BOTH packs because neither emits an Answer: line (proof-mode writes the proof into the content channel and stops). At arms --reasoning-budget 4096 (via ~/run-sushi-budget.sh, EXTRA_FLAGS) the thinking is clamped to 4119 tokens on the cases that hit it (5/10 ours, 4/10 theirs) and exactly those cases emit graded content: ours 1/10 (11 vs 2; 3976036 vs 3986729; 25/2 PASS; 1002 vs 1003), theirs 2/10 (4041417 vs 3986729; 25/2 PASS; 1003 PASS). Cases whose thinking finished under the budget stay proof-mode with empty content. CONCLUSION: the 0/10 was a format/channel artifact, but forcing the answer does NOT reveal hidden competence - at 2.6bpw+kv8 Olympiad is genuinely ~1-2/10, and 1 vs 2 at n=10 is noise. Report Olympiad as non-discriminating, never as a capability score."
-  }
+  },
+  "suites_not_run": "core (92: GPQA Diamond + SuperGPQA + AIME 2025 + COMPSEC) \u2014 never run on this box for either pack; skipped on cost (~3-5 h/pack at these arms), not attempted and dropped. Run it as JOBS='ours:core,theirs:core' scripts/13-eval-queue.sh; until then no GPQA/AIME/SuperGPQA/COMPSEC number on the card is our measurement."
  }
 }

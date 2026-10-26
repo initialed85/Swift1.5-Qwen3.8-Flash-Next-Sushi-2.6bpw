@@ -356,12 +356,13 @@ grades deterministically — execution for code, `Answer:`-line matching for the
 |---|---|---|
 | `--eval-suite code` | 100 JavaScript functions: 50 HumanEval + 50 MBPP (MultiPL-E ports) | **executes** the model's function against the ported asserts (`node:vm`, 3 s cap) |
 | `--eval-suite hard` | 50 questions: 30 MMLU-Pro, 10 OlympiadBench, 5 LiveBench (zebra), 5 NIST Juliet reductions | normalised `Answer:` line vs the published answer and its listed equivalent forms |
-| `--eval-suite core` | 92: GPQA Diamond, SuperGPQA, AIME 2025, COMPSEC | as above; **suites are not comparable to each other** (llmprobe's rule, quoted in its README) |
+| `--eval-suite core` | 92: GPQA Diamond, SuperGPQA, AIME 2025, COMPSEC | as above; **never run on this box** (see below) — the two rows above are the only deck measurements this card makes. **Suites are not comparable to each other** (llmprobe's rule, quoted in its README) |
 
 The `hard` deck is the same test behind beamster's card line *"LLMProbe Hard 50 — 88.0 %"*, which
 matters because it is the only claim of that kind we could check against someone else's pack —
 and it is **not reproduced here** (their pack, our server, arms below: 72.0 %). The source model's
-`medium` 0.2078 / `xhigh` 0.2980 GPQA-Diamond figures are reachable with `--eval-suite core`.
+`medium` 0.2078 / `xhigh` 0.2980 GPQA-Diamond figures are reachable with `--eval-suite core` — but
+**that suite was not run here**, so those figures are quoted from the source card, not checked.
 
 Arms, pinned, identical for both packs — only `--model` moves:
 
@@ -418,6 +419,22 @@ What that says, in the plainest terms I can defend:
   wrong; I am claiming they are not the same measurement.
 - Run-to-run spread: the same pack, deck and arms scored 82/100 and 81/100 (pilot vs clean), so
   **±1/100 is noise, not a finding**. The 5-question code gap is 5× that band, so it is a real gap.
+
+### Not measured, deliberately open
+
+`--eval-suite core` (92: GPQA Diamond, SuperGPQA, AIME 2025, COMPSEC) has **never been run on this
+box**, for either pack. At these arms it costs roughly 3–5 h per pack (the hard rows were 87/130 min
+for 50 questions), so it was skipped, not failed. If it ever gets run, it is a new deck row in the
+same arms set and nothing else changes:
+
+```bash
+JOBS="ours:core,theirs:core" scripts/13-eval-queue.sh     # ~6–10 h, restarts the server per job
+```
+
+Until then: no GPQA, AIME, SuperGPQA or COMPSEC number on this card is *our* measurement — the source
+model's 0.2078 / 0.2980 GPQA-Diamond figures are quoted from the source card, and beamster's card is
+not a source for `core` on our box either. Read the card's claims as: one code deck, one hard deck,
+one budgeted 10-question slice, all on the same server.
 
 ### Two things the harness had wrong, and what fixing them changed
 

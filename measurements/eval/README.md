@@ -55,3 +55,17 @@ A row at `--reasoning-budget` is not comparable to a row without it.
 The two older manifests (`invalid/`, `superseded/`) were written before the validity gate was
 rewritten, so they carry no `cases_without_final_text` / `cases_without_generation` fields —
 `invalid/README.md` states that run's counts directly (100/100 cases at zero generated tokens).
+
+## Not run yet (open, deliberate — a reminder, not a failure)
+
+`--eval-suite core` (92: GPQA Diamond + SuperGPQA + AIME 2025 + COMPSEC) has never been run on this
+box, for either pack. It was skipped on cost (~3–5 h/pack at these arms), not attempted and dropped:
+
+```bash
+JOBS="ours:core,theirs:core" scripts/13-eval-queue.sh      # ~6–10 h; queue budgets 360 min per job
+```
+
+Nothing on this card depends on it. If it runs, the two rows land in the table above with `serving =
+no budget` and effort `xhigh`, and `scripts/12-eval-table.py measurements/eval` folds them in
+automatically — a `core` row is a different deck and must never be read against the `hard` or `code`
+rows (llmprobe's rule).
