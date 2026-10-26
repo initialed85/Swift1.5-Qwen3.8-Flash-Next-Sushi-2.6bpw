@@ -103,6 +103,11 @@
    ]
   }
  },
+ "metadata_notes": {
+  "hub_param_count": "HF's auto-generated Safetensors section reports 25 959 006 099 (~26 B) for this pack. That is a count of stored tensor units in the headers, not parameters: HF weighs U32 blocks x4 (right for the FP8 E4M3FN trunk, four 8-bit weights per U32) and U16 blocks x1 (wrong for EXL3, ~6.095 weights per 16-bit unit at k=2.625), so the figure mixes units. Parsing all 52 shard headers ourselves gives 22 388 758 419 stored elements.",
+  "logical_parameters": "U16 20 230 963 200 x 16/2.625 = 123.31 B (EXL3 experts, 48 layers + MTP) + U32 1 241 825 280 x 4 = 4.97 B (trunk, 8-bit affine group 64: four 8-bit codes per U32, e.g. embed_tokens.weight stored [248320, 640] for hidden 2560) + BF16 675 125 104 = 0.675 B + ngram_table.bin 20 000 000 x 2560 = 51.20 B (4-bit affine group 32; 32.00 GB / 51.2 B = 5.0 bits/entry with scales) = ~180.16 B logical parameters. The base model (ukisai/Swift1.5-Qwen3.8-Flash-Next) counts 179 999 981 424 on the Hub, so the pack agrees within +0.086 %. F16 240 844 800 units are scales, not weights. Quote ~180 B parameters for this model.",
+  "config_json": "config.json still declares quantization_config {bits: 8, group_size: 64, mode: affine}, which is why the Hub shows an 8-bit chip. sushi validates quantization_config at load (its own errors: \"unsupported quantization mode '' (supported: affine, nvfp4, mxfp4, mxfp8)\" and \"unsupported affine quantization: -bit\"), and the record describes the affine dense arm, not the 2.625 expert rate. Rewriting bits/mode risks an unloadable pack, so the converter's config.json is shipped untouched and the card explains the chip."
+ },
  "matched_against": {
   "repo": "beamster/Qwen3.8-Flash-Next-Sushi-2.6bpw",
   "matching": [
@@ -261,7 +266,7 @@
    ]
   },
   "system": "vm.memory_pressure 0, system-wide free 94%, iogpu.wired_limit_mb 60416",
-  "note": "Pack staged under ~/.sushi/models/beamster/Swift1.5-\u2026 BEFORE publication, so the served id there is the DIRECTORY name, not beamster's repo and not a claim about beamster's pack. Same bytes; superseded by serving_verified_recheck, which shows the published id initialed85/Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw after the move to the initialed85 path."
+  "note": "Pack staged under ~/.sushi/models/beamster/Swift1.5-… BEFORE publication, so the served id there is the DIRECTORY name, not beamster's repo and not a claim about beamster's pack. Same bytes; superseded by serving_verified_recheck, which shows the published id initialed85/Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw after the move to the initialed85 path."
  },
  "license_files_shipped": [
   "LICENSE",
@@ -294,7 +299,7 @@
   },
   "completion_probe": "prompt 'The capital of France is' -> ' Paris.' (8 tokens, temp 0)"
  },
- "measurements_task_eval": "measurements.json task_eval + measurements/eval/*-manifest.json; six clean rows, arms matched (greedy t=0, effort medium on code / xhigh on hard, concurrency 2, cap 16000, identical server flags, only --model moves): ours code 81/100, theirs code 86/100, ours hard 36/50, theirs hard 36/50, and the 10-question Olympiad slice at budgeted arms (--reasoning-budget 4096, a separate launcher): ours 1/10, theirs 2/10. Slice rows are a different deck size and are labelled as such; they are not deck scores. Hard-deck rows carry 12/50 and 13/50 cases that reasoned with no Answer: line (cases_without_final_text, kept as real results): validity is outputTokens == 0, so the only artifact is invalid/ (0/100 at 0 generated tokens in 3.1 s, the server answering with no pack resident) and superseded/ holds the shared-engine 82/100 pilot. OlympiadBench 0/10 on BOTH packs is an output-channel failure, not hidden competence. beamster's claimed Hard-50 88.0 % measures 72.0 % with their pack on this server. NOT RUN: --eval-suite core (92: GPQA Diamond, SuperGPQA, AIME 2025, COMPSEC), skipped on cost (~3-5 h per pack) \u2014 no GPQA/AIME/SuperGPQA/COMPSEC number on the card is our measurement.",
+ "measurements_task_eval": "measurements.json task_eval + measurements/eval/*-manifest.json; six clean rows, arms matched (greedy t=0, effort medium on code / xhigh on hard, concurrency 2, cap 16000, identical server flags, only --model moves): ours code 81/100, theirs code 86/100, ours hard 36/50, theirs hard 36/50, and the 10-question Olympiad slice at budgeted arms (--reasoning-budget 4096, a separate launcher): ours 1/10, theirs 2/10. Slice rows are a different deck size and are labelled as such; they are not deck scores. Hard-deck rows carry 12/50 and 13/50 cases that reasoned with no Answer: line (cases_without_final_text, kept as real results): validity is outputTokens == 0, so the only artifact is invalid/ (0/100 at 0 generated tokens in 3.1 s, the server answering with no pack resident) and superseded/ holds the shared-engine 82/100 pilot. OlympiadBench 0/10 on BOTH packs is an output-channel failure, not hidden competence. beamster's claimed Hard-50 88.0 % measures 72.0 % with their pack on this server. NOT RUN: --eval-suite core (92: GPQA Diamond, SuperGPQA, AIME 2025, COMPSEC), skipped on cost (~3-5 h per pack) — no GPQA/AIME/SuperGPQA/COMPSEC number on the card is our measurement.",
  "code_repository": "git@github.com:initialed85/Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw.git (web: https://github.com/initialed85/Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw)",
  "distribution": {
   "hf_model_repo": "weights (52 layer shards + trunk/mtp/ngram, 79.3 GB) + card + licences + .gitattributes + SHA256SUMS.txt + provenance.json + measurements.json + measurements/eval aggregate artifacts (manifests, table.csv, write-ups) + scripts/ + docs/",

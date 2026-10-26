@@ -80,13 +80,52 @@ Runtime requirement: **sushi ≥ 1.3.0** (this build used 1.3.0; the `mcg` codeb
 and `qwen-gdn` kernels are 1.3.x), Apple Silicon, macOS 26.2+. **sushi only** — does not load in
 transformers, vLLM, mlx-lm, llama.cpp or exllamav3.
 
+## Parameter count — the Hub's "26 B params" is not a parameter count
+
+The auto-generated **Safetensors** section on this page reports **25 959 006 099 “parameters” (≈26 B) —
+that figure is wrong for this model, and it is not something I can set.** HF counts *stored tensor
+units* in the safetensors headers, and this pack's tensors are Sushi-packed blocks, so units ≠
+parameters. The model is a **≈180 B-parameter MoE**, identical in architecture to the base model it
+quantizes; here is the decomposition, computed from the 52 shard headers plus `ngram_table.bin`, and
+it lands **0.09 %** off the base model's own authoritative count:
+
+| stored | units in the headers | logical parameters | packing |
+|---|---|---|---|
+| `U16` (48 layer shards + `mtp-0`) | 20 230 963 200 | **≈123.31 B** | EXL3 experts at k = 2.625 bpw → 16/2.625 = 6.095 weights per 16-bit unit |
+| `U32` (3 trunk shards) | 1 241 825 280 | **≈4.97 B** | trunk is **8-bit affine, 64-row groups** (`trunk=8/64`): four 8-bit codes packed per `U32` — e.g. `embed_tokens.weight` is stored `[248320, 640]` U32 for a 2560-wide hidden size. That is why HF's `U32` line reads exactly 4× its element count |
+| `BF16` (trunk) | 675 125 104 | **≈0.675 B** | unquantized |
+| `F16` | 240 844 800 | **0** | scales / output scales, not weights |
+| `I64` | 35 | 0 | bookkeeping |
+| `ngram_table.bin` | 32.00 GB | **≈51.20 B** | 20 000 000 × 2560 entries, 4-bit affine group 32 → 32.00 GB ÷ 51.2 B = exactly 5.0 bits/entry with scales |
+| **total** | 22 388 758 419 elements (HF tallies 25.96 B, see above) | **≈180.16 B** | base model `ukisai/Swift1.5-Qwen3.8-Flash-Next` counts **179 999 981 424** (360.04 GB of BF16) |
+
+So: **180 B parameters, of which 10 of 512 experts fire per token** — about **2.4 B of expert weights
+consulted per token** (10 experts × 3 matrices × 2560 × 640 × 48 layers), at 47.26 GB of safetensors
++ 32.00 GB of n-gram table = 79.26 GB on disk. Dividing that back out: the 128.9 B parameters outside
+the n-gram table occupy 47.26 GB, i.e. **2.94 bits/weight**, which is the 2.625 expert rate plus BF16
+embeddings/attention and the 8-bit trunk — the arithmetic agrees.
+
+The shard headers carry the recipe verbatim (`__metadata__: {format: exl3, k: 2.625, codebook: mcg,
+window: 15, encoder: sushi-encoder-1, quantizer: ldlq-rotated, global_scale_search: on, calib_tokens:
+65 536, calib_sha256: 7f2a5b14…}`), so the 16 / 2.625 = 6.095 weights-per-U16 figure comes from the
+header's own `k`, not from the name “2.6bpw”.
+
+Two more things the page gets wrong in the same direction, and what I will *not* do about them:
+`config.json` declares `quantization_config: {bits: 8, group_size: 64, mode: "affine"}`, which is why
+HF shows a “8-bit” chip. That record is sushi's own **dense/affine arm**, written by the converter,
+and sushi validates it on load (`unsupported quantization mode '' (supported: affine, nvfp4, mxfp4,
+mxfp8)`, `unsupported affine quantization: -bit`) — rewriting `bits` to 2.625 risks an unloadable
+pack, so `config.json` stays exactly as the converter wrote it and the card explains it instead.
+Same for the tensor shapes: repacking to make HF print 180 B would break the pack. The number to quote
+for this model is **≈180 B parameters**.
+
 ## Where the three trees live
 
 This pack is published in two trees, deliberately:
 
 | tree | contains | why |
 |---|---|---|
-| **this HF repo** | 52 layer shards + trunk/mtp/ngram table (79.3 GB), the card, licences, `.gitattributes`, `provenance.json`, `measurements.json`, `measurements/eval/` **manifests + `table.csv` + write-ups**, `scripts/`, `docs/` | one `hf download` target: weights plus everything needed to audit and reproduce the claims |
+| **this HF repo** | 48 layer shards + 1 MTP shard + 3 trunk shards (52 `.safetensors`) + `ngram_table.bin` (79.3 GB), the card, licences, `.gitattributes`, `provenance.json`, `measurements.json`, `measurements/eval/` **manifests + `table.csv` + write-ups**, `scripts/`, `docs/`, `fixtures/` | one `hf download` target: weights plus everything needed to audit and reproduce the claims |
 | **the GitHub repo** ([`initialed85/Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw`](https://github.com/initialed85/Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw)) | the same card, every script with its history, `docs/BUILD.md`, provenance, the aggregate measurement rows — no weights (`.gitattributes` keeps binaries on LFS/Xet if you ever add them) | diffs, history, issues: the place to read and argue about the harness and the build |
 
 Neither tree carries the **case-level** eval reports or the run logs: those embed the benchmark
