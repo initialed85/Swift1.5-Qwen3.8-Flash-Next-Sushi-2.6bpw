@@ -39,6 +39,28 @@ CARD_FILES=(README.md LICENSE LICENSE-QWEN NOTICE NOTICE-CONVERSION.md .gitattri
             SHA256SUMS.txt provenance.json measurements.json)
 CARD_DIRS=(scripts docs logs)
 
+# A filename carrying a control character (this bit us: two capture logs whose names embedded newlines,
+# because an older 08-capture.sh built the name from an unsanitised label) uploads fine but is
+# unquotable on the Hub and invisible to most listing tools. Refuse rather than ship it.
+bad_names=$(python3 - "$CARD_DIR" "${CARD_DIRS[@]}" <<'PY'
+import os, sys
+root, subdirs = sys.argv[1], sys.argv[2:]
+bad = []
+for d in subdirs:
+    for dirpath, _, files in os.walk(os.path.join(root, d)):
+        for f in files:
+            if any(ord(c) < 32 or ord(c) > 126 for c in f):
+                bad.append(os.path.relpath(os.path.join(dirpath, f), root))
+print("\n".join(bad))
+PY
+)
+if [[ -n "$bad_names" ]]; then
+  echo "FAIL: filenames with control characters under $CARD_DIR (they upload, then are unquotable on the Hub):"
+  printf '  %s\n' $bad_names
+  echo "rename them first (the sane name is the same string with the control char replaced by '-')"
+  exit 1
+fi
+
 echo "repo : $REPO  $( [[ "$PRIVATE" == 1 ]] && echo '(private)' ) "
 echo "card : $CARD_DIR"
 echo "pack : $PACK ($(du -sh "$PACK" | cut -f1), $(find "$PACK" -type f | wc -l | tr -d ' ') files)"
@@ -49,11 +71,19 @@ if [[ "$DRY" == 1 ]]; then
   exit 0
 fi
 
-# 1) create the repo (private by default — flip with hf repo-update when you're happy with it)
-repo_exists() { curl -sf "https://huggingface.co/api/models/$REPO" >/dev/null; }
+# 1) create the repo (private by default — flip with hf repos settings when you're happy with it)
+# The existence probe MUST be authenticated: this repo is private, so an unauthenticated probe gets
+# 401, the guard concludes "doesn't exist", and `repos create` then answers 409 Conflict. Same reason
+# the verify block below sends Authorization.
+TOK="$("$HF" auth token)"
+repo_exists() { curl -sf -H "Authorization: Bearer $TOK" "https://huggingface.co/api/models/$REPO" >/dev/null; }
 if ! repo_exists; then
-  if [[ "$PRIVATE" == 1 ]]; then "$HF" repos create "$REPO" --type model --private; else "$HF" repos create "$REPO" --type model; fi
-  echo "created $REPO"
+  echo "probing says $REPO is not there (or the token cannot see it) — trying create, a 409 means it already exists"
+  if [[ "$PRIVATE" == 1 ]]; then
+    "$HF" repos create "$REPO" --type model --private || echo "create failed; if it said 409 Conflict the repo is already yours, continuing"
+  else
+    "$HF" repos create "$REPO" --type model || echo "create failed; if it said 409 Conflict the repo is already yours, continuing"
+  fi
 fi
 
 # 2) card + licences + provenance + scripts
@@ -86,10 +116,15 @@ done
 
 # 4) prove it landed
 echo "== verifying the repo tree"
-python3 - "$REPO" "$PACK" <<'PY'
-import json, sys, urllib.request
+HF_TOKEN="$TOK" python3 - "$REPO" "$PACK" <<'PY'
+import json, sys, os, urllib.request
 repo, pack = sys.argv[1], sys.argv[2]
-api = lambda u: json.load(urllib.request.urlopen(urllib.request.Request(u, headers={"User-Agent": "publish/1.0"})))
+tok = os.environ["HF_TOKEN"]
+# Authorization is mandatory: the pack repo is PRIVATE, so an unauthenticated tree call is a 401
+# and the whole push looks like it failed when every byte is already up.
+def api(u):
+    return json.load(urllib.request.urlopen(urllib.request.Request(
+        u, headers={"Authorization": f"Bearer {tok}", "User-Agent": "publish/1.0"})))
 tree = api(f"https://huggingface.co/api/models/{repo}/tree/main?recursive=true&full=true")
 remote = {e["path"]: e.get("size", 0) for e in tree if e["type"] == "file"}
 import os
