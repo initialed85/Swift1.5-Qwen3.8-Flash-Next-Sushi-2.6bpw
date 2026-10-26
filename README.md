@@ -110,6 +110,12 @@ window: 15, encoder: sushi-encoder-1, quantizer: ldlq-rotated, global_scale_sear
 65 536, calib_sha256: 7f2a5b14…}`), so the 16 / 2.625 = 6.095 weights-per-U16 figure comes from the
 header's own `k`, not from the name “2.6bpw”.
 
+One caveat on HF's own lines: its `U16`/`F16`/`I64` counts match our headers exactly, its `U32` is 4×
+(its units are the packed 8-bit codes), and its `BF16` line is *short* by 155 228 160 units (519 896 944
+vs 675 125 104) even though `model.safetensors.index.json` indexes every tensor in every shard. That is
+an HF parsing quirk I can reproduce but not explain; it does not affect the arithmetic above, which is
+computed from the shard headers themselves.
+
 Two more things the page gets wrong in the same direction, and what I will *not* do about them:
 `config.json` declares `quantization_config: {bits: 8, group_size: 64, mode: "affine"}`, which is why
 HF shows a “8-bit” chip. That record is sushi's own **dense/affine arm**, written by the converter,
