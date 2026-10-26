@@ -217,6 +217,14 @@ sushi list        : qwen3.8-flash-next:2.6bpw — published 73.7 GB, this Mac "f
                     marked "recommended" for 64 GB; our dir measures 73.85 GiB
 ```
 
+> **Size is not parameter count.** The Hub's auto-generated Safetensors section reads **≈26 B params
+> (25 959 006 099)** for this pack — that is HF counting packed tensor *units*, not parameters (it counts
+> a U16 block as 1 unit while each carries ≈6.1 expert weights at k = 2.625; its ×4 on U32 happens to
+> match the 8-bit trunk; its BF16 line is 155.2 M short of the headers). The model is a **≈180 B-parameter
+> MoE** — verified from the shard headers: 123.31 B EXL3 experts + 4.97 B 8-bit trunk + 0.675 B BF16 +
+> 51.20 B n-gram table = **180.16 B**, against the base model's own 179 999 981 424 (delta +0.086 %).
+> Full table in the card's "Parameter count" section; quote **≈180 B parameters**.
+
 ## Reproducing a build, start to finish
 
 ```bash
