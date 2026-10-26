@@ -58,6 +58,30 @@ The two older manifests (`invalid/`, `superseded/`) were written before the vali
 rewritten, so they carry no `cases_without_final_text` / `cases_without_generation` fields —
 `invalid/README.md` states that run's counts directly (100/100 cases at zero generated tokens).
 
+## Monitoring a run (collect raw, parse later)
+
+Never parse the live server in a pipeline — a broken `grep` mid-run is unrecoverable, and every
+field we want is cheap to re-derive from a saved payload. So collection and parsing are separate
+scripts, and collection writes a file:
+
+```bash
+nohup scripts/14-metrics-log.sh >/dev/null 2>&1 &      # raw /metrics snapshots -> logs/metrics-raw-<stamp>.log
+python3 scripts/15-metrics-parse.py logs/metrics-raw-<stamp>.log   # offline: progress table, deltas
+pkill -f 14-metrics-log.sh                             # stop collecting
+```
+
+`14-metrics-log.sh` does no parsing at all (timestamped copy of the payload, one `curl`, every 30 s).
+`15-metrics-parse.py` only reads. If the fields turn out to be the wrong ones, re-run the parser on
+the same file. Same rule as the deck runs: llmprobe's report `*.json` and its tee'd `*.log` land on
+disk raw, and `scripts/12-eval-table.py` builds the table afterwards — nothing in the collection
+path depends on a filter being right.
+
+Which counter means "alive": `sushi:generation_tokens_live` (tokens decoding right now) is the
+liveness signal. `vllm:e2e_request_latency_seconds_count` (completed requests) is the progress
+signal, and it moves slowly by design — at xhigh with a 16 k cap one question takes 10-20 minutes,
+so a flat completion count for a few minutes is not a stall. A real stall is `live` frozen while
+requests are running (that is how `theirs:core` died on 2026-10-26: ~20 min with no decode).
+
 ## Core (run 2026-10-26/27) — ours landed, theirs did not
 
 `--eval-suite core` (92: GPQA Diamond + SuperGPQA + AIME 2025 + COMPSEC) was run at the arms above
