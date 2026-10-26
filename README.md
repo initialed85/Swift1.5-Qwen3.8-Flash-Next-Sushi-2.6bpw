@@ -26,7 +26,9 @@ tags:
 
 Unofficial, community-built [sushi](https://github.com/beamivalice/sushi) pack of
 [ukisai/Swift1.5-Qwen3.8-Flash-Next](https://huggingface.co/ukisai/Swift1.5-Qwen3.8-Flash-Next),
-quantised to EXL3 2.6 bits/weight on a single 64 GB Apple Silicon Mac.
+quantised to EXL3 **k = 2.625 bpw on the routed experts** — 180 B parameters in 79.26 GB, i.e.
+**≈3.52 bits/weight overall** (the 47.26 GB of safetensors hold the 128.9 B parameters outside the n-gram
+table at **2.94 bits/weight**, see the Parameter count section below) — on a single 64 GB Apple Silicon Mac.
 
 **Not affiliated with UkisAI or with beamster.** Weights are the property of their respective
 copyright holders (UkisAI, Qwen); this repository is a conversion under the terms of the
@@ -103,7 +105,8 @@ So: **180 B parameters, of which 10 of 512 experts fire per token** — about **
 consulted per token** (10 experts × 3 matrices × 2560 × 640 × 48 layers), at 47.26 GB of safetensors
 + 32.00 GB of n-gram table = 79.26 GB on disk. Dividing that back out: the 128.9 B parameters outside
 the n-gram table occupy 47.26 GB, i.e. **2.94 bits/weight**, which is the 2.625 expert rate plus BF16
-embeddings/attention and the 8-bit trunk — the arithmetic agrees.
+embeddings/attention and the 8-bit trunk — the arithmetic agrees. Including the table, the whole model
+sits at 79.26 GB ÷ 180.16 B = **3.52 bits/weight** (the table itself is 5.0 bits/entry, weights plus scales).
 
 The shard headers carry the recipe verbatim (`__metadata__: {format: exl3, k: 2.625, codebook: mcg,
 window: 15, encoder: sushi-encoder-1, quantizer: ldlq-rotated, global_scale_search: on, calib_tokens:
