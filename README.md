@@ -5,6 +5,7 @@ license_link: LICENSE
 base_model: ukisai/Swift1.5-Qwen3.8-Flash-Next
 base_model_relation: quantized
 pipeline_tag: image-text-to-text
+github_repo: https://github.com/initialed85/Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw
 title: Swift 1.5 Qwen3.8-Flash-Next — Sushi 2.6bpw
 images:
 - ukisai-banner.png
@@ -47,9 +48,12 @@ hf download initialed85/Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw \
   --prompt "Hello, Swift."
 ```
 
-The path is deliberately under `~/.sushi/models/beamster/` — that is where `sushi pull` writes
-official packs, and where `sushi serve` finds packs by name. Serving needs the GPU wired-limit
-sysctl first: [`docs/BUILD.md` → Serving it](docs/BUILD.md).
+The path is under `~/.sushi/models/initialed85/…`, **not** `~/.sushi/models/beamster/` — sushi scans
+that tree one directory per org, and `serve --model <path>` takes the explicit path, so the served
+model id follows the directory name (`initialed85/Swift1.5-…`, as in the `/v1/models` sample above).
+What you *cannot* do is address this pack by short name: name resolution only knows beamster's packs,
+which is where `sushi pull` writes them. Serving needs the GPU wired-limit sysctl first:
+[`docs/BUILD.md` → Serving it](docs/BUILD.md).
 
 Install sushi (there is no `sushi.sh` installer):
 ```bash
@@ -75,6 +79,21 @@ curl -L https://github.com/beamivalice/sushi/releases/latest/download/sushi-bin-
 Runtime requirement: **sushi ≥ 1.3.0** (this build used 1.3.0; the `mcg` codebook, `n42` GEMM body
 and `qwen-gdn` kernels are 1.3.x), Apple Silicon, macOS 26.2+. **sushi only** — does not load in
 transformers, vLLM, mlx-lm, llama.cpp or exllamav3.
+
+## Where the three trees live
+
+This pack is published in two trees, deliberately:
+
+| tree | contains | why |
+|---|---|---|
+| **this HF repo** | 52 layer shards + trunk/mtp/ngram table (79.3 GB), the card, licences, `.gitattributes`, `provenance.json`, `measurements.json`, `measurements/eval/` **manifests + `table.csv` + write-ups**, `scripts/`, `docs/` | one `hf download` target: weights plus everything needed to audit and reproduce the claims |
+| **the GitHub repo** ([`initialed85/Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw`](https://github.com/initialed85/Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw)) | the same card, every script with its history, `docs/BUILD.md`, provenance, the aggregate measurement rows — no weights (`.gitattributes` keeps binaries on LFS/Xet if you ever add them) | diffs, history, issues: the place to read and argue about the harness and the build |
+
+Neither tree carries the **case-level** eval reports or the run logs: those embed the benchmark
+corpora' questions and published answers (and LiveBench's five are explicitly not ours to publish).
+They stay in the working tree; each one is anchored by sha256 in its `*-manifest.json`, which *is*
+published. See [`measurements/eval/README.md`](measurements/eval/README.md) for the policy and the
+hash table.
 
 ## Measured on the build machine
 
@@ -400,6 +419,32 @@ What that says, in the plainest terms I can defend:
 - Run-to-run spread: the same pack, deck and arms scored 82/100 and 81/100 (pilot vs clean), so
   **±1/100 is noise, not a finding**. The 5-question code gap is 5× that band, so it is a real gap.
 
+### Two things the harness had wrong, and what fixing them changed
+
+**The validity gate.** It originally keyed on "no final text", which quarantined rows that were
+perfectly good measurements: on the hard decks a pack can reason for 1 503–16 000 tokens and never
+emit an answer line, and that is a real result about a real failure mode, not a broken run. The
+signature of the actual bug — the server answering while the pack was not resident — is requests that
+generated **nothing at all**. So invalidity is now `outputTokens == 0` per case (measured: the
+quarantined 0/100 artifact was 100/100 cases at 0 tokens in 3.1 s; every genuine case has ≥ 119).
+The manifests record both counts separately: `cases_without_final_text` (kept, a real result) and
+`cases_without_generation` (the bug). Exactly one report in this card's evidence is a real artifact;
+it lives in `measurements/eval/invalid/`.
+
+**Sub-deck labelling.** `--eval-cases` slices (the Olympiad experiment) are a *different deck size*,
+so they must never be read as deck scores. `11-eval.sh` folds the slice into the report and manifest
+label (`hard-olympiad`) and `12-eval-table.py` prints it as `hard-olympiad (SUB-DECK slice, 10 q)`
+with a `serving` column taken from the live serve command line (`budget 4096` vs `no budget`), and
+refuses to print two same-suite rows of different deck sizes that are not labelled as slices.
+
+**The MBPP mechanism is visible in the cost columns.** At the code deck our pack medians **332**
+thinking tokens/question on MBPP against theirs at **556** (across the whole deck: 565 vs 1 544
+mean reasoning/question). Ours under-thinks at `effort medium`, and that is where the −5 sits —
+so the clean capability gap on this card is partly a thinking-budget effect at these arms, not only
+a weights difference. HumanEval's misses are extraction misses (2 ours, 1 theirs) and `HumanEval_116_sort_array`
+fails on **both** packs, which points at the prompt, not the pack. Full per-source table:
+[`measurements/eval/failures-by-source.md`](measurements/eval/failures-by-source.md).
+
 **Pilot, with its contamination disclosed** ([receipt](measurements/eval/superseded/)): the same
 code deck at concurrency 4 **while the engine was shared with this agent's own inference** scored
 **82/100** (HumanEval 48/50, MBPP 34/50). Scoring is latency-independent, so the score stays credible;
@@ -411,9 +456,14 @@ one-liners with no examples, so a model can write a correct function to a differ
 for 100 % on this deck of a quantised model and you will be disappointed."* The ~16 MBPP misses are
 a floor for 2.6 bpw JavaScript, not a per-pack finding — the pack-vs-pack comparison is the point.
 
-Scores are aggregates only; the prompt sets are third-party corpora (GPQA CC BY 4.0, SuperGPQA
+Scores are aggregates only. The prompt sets are third-party corpora (GPQA CC BY 4.0, SuperGPQA
 ODC-BY, AIME 2025 mirror MIT, MMLU-Pro / OlympiadBench / LiveBench Apache-2.0 as redistributed by
-llmprobe, Juliet reductions CC0, MultiPL-E MIT) and are **not redistributed by this repo**.
+llmprobe, Juliet reductions CC0, MultiPL-E MIT) and are **not redistributed by either published
+tree**: what ships is aggregate scores, arms and cost per row (`*-manifest.json`, `table.csv`) plus
+the write-ups. The case-level reports and the run logs that embed them stay in the working tree,
+hash-anchored through the manifests — LiveBench's five questions come from a private benchmark and
+are not publishable at all. Re-obtain a report by re-running `scripts/11-eval.sh` at the arms in
+`measurements/eval/README.md`; its sha256 should match the manifest's `report_sha256`.
 
 ```bash
 scripts/11-eval.sh <served-model-id>          # one deck against whatever the server serves

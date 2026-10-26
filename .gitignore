@@ -2,3 +2,17 @@ __pycache__/
 *.pyc
 .DS_Store
 *.log
+# --- third-party benchmark payloads: NOT published in either tree ---
+# llmprobe's case-level reports embed the decks' questions and published answers (MMLU-Pro,
+# OlympiadBench, SuperGPQA, LiveBench zebra, Juliet). LiveBench's five questions are sourced from a
+# private benchmark and are explicitly not ours to publish, so case-level reports and the run logs
+# that carry them stay in the working tree only. Their sha256 travels in the *-manifest.json and in
+# table.csv, which are aggregate: scores, arms, cost. Re-obtain a report by re-running 11-eval.sh.
+measurements/eval/*.json
+!measurements/eval/*-manifest.json
+measurements/eval/*/*.json
+!measurements/eval/*/*-manifest.json
+logs/
+__pycache__/
+*.pyc
+.DS_Store

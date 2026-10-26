@@ -306,7 +306,7 @@
    "NIST Juliet reductions": "CC0",
    "MultiPL-E code deck": "MIT"
   },
-  "redistribution": "aggregate scores only; prompt sets are not redistributed by this repo",
+  "redistribution": "aggregate scores only; the prompt sets (and the model's own case-level outputs) are NOT redistributed by either published tree. Published per-run artifacts are the manifests (score, arms, cost, report_sha256) and table.csv. Case-level reports and run logs stay in the working tree; re-obtain by re-running scripts/11-eval.sh at the arms in measurements/eval/README.md and matching report_sha256. LiveBench's five questions are not publishable at all.",
   "clean_ours_code": {
    "run_utc": "2026-10-25T10:45Z",
    "model": "initialed85/Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw",

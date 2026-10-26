@@ -260,7 +260,8 @@
     "json_schema"
    ]
   },
-  "system": "vm.memory_pressure 0, system-wide free 94%, iogpu.wired_limit_mb 60416"
+  "system": "vm.memory_pressure 0, system-wide free 94%, iogpu.wired_limit_mb 60416",
+  "note": "Pack staged under ~/.sushi/models/beamster/Swift1.5-\u2026 BEFORE publication, so the served id there is the DIRECTORY name, not beamster's repo and not a claim about beamster's pack. Same bytes; superseded by serving_verified_recheck, which shows the published id initialed85/Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw after the move to the initialed85 path."
  },
  "license_files_shipped": [
   "LICENSE",
@@ -271,7 +272,8 @@
  "get_it": {
   "sushi_pull": "NOT possible: sushi 1.3.0 restricts pull to the beamster org (NotBeamster)",
   "sushi_run": "sushi run initialed85/Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw",
-  "hf_download": "hf download initialed85/Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw --local-dir ~/.sushi/models/beamster/Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw"
+  "hf_download": "hf download initialed85/Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw --local-dir ~/.sushi/models/initialed85/Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw",
+  "sushi_serve": "sushi --model ~/.sushi/models/initialed85/Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw --prompt 'Hello, Swift.'  # explicit path; short-name resolution knows only beamster packs"
  },
  "serving_verified_recheck": {
   "when": "2026-10-25T06:00Z, after the pack moved to the initialed85 path",
@@ -292,5 +294,12 @@
   },
   "completion_probe": "prompt 'The capital of France is' -> ' Paris.' (8 tokens, temp 0)"
  },
- "measurements_task_eval": "measurements.json task_eval.clean_rows; four rows, arms matched (greedy t=0, effort medium code / xhigh hard, concurrency 2, cap 16000, same server flags, only --model changes): ours code 81/100, theirs code 86/100, ours hard 36/50, theirs hard 36/50. OlympiadBench 0/10 on BOTH packs (reasoned, no Answer: line) so that sub-deck has no discriminating signal; beamster's claimed Hard-50 88.0 % measures 72.0 % with their pack on this server. invalid/ holds one 0/100 artifact (0 generated tokens); superseded/ holds the shared-engine 82/100 pilot."
+ "measurements_task_eval": "measurements.json task_eval.clean_rows; four rows, arms matched (greedy t=0, effort medium code / xhigh hard, concurrency 2, cap 16000, same server flags, only --model changes): ours code 81/100, theirs code 86/100, ours hard 36/50, theirs hard 36/50. OlympiadBench 0/10 on BOTH packs (reasoned, no Answer: line) so that sub-deck has no discriminating signal; beamster's claimed Hard-50 88.0 % measures 72.0 % with their pack on this server. invalid/ holds one 0/100 artifact (0 generated tokens); superseded/ holds the shared-engine 82/100 pilot.",
+ "code_repository": "git@github.com:initialed85/Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw.git (web: https://github.com/initialed85/Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw)",
+ "distribution": {
+  "hf_model_repo": "weights (52 layer shards + trunk/mtp/ngram, 79.3 GB) + card + licences + .gitattributes + SHA256SUMS.txt + provenance.json + measurements.json + measurements/eval aggregate artifacts (manifests, table.csv, write-ups) + scripts/ + docs/",
+  "github_repo": "the same card, every script with git history, docs/, provenance.json, measurements.json and the aggregate measurement artifacts - NO weights",
+  "never_published": "case-level llmprobe reports (measurements/eval/*.json) and run logs (logs/): they embed third-party corpora questions and published answers; LiveBench's five questions are sourced from a private benchmark and are not publishable. Each report is anchored by sha256 in its manifest (report_sha256).",
+  "policy_file": "measurements/eval/README.md"
+ }
 }
