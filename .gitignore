@@ -16,3 +16,6 @@ logs/
 __pycache__/
 *.pyc
 .DS_Store
+# publish.sh staging scratch + resumable-run lockfiles (state, not evidence)
+.publish-stage/
+.successes

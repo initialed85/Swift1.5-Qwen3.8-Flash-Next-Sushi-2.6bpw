@@ -8,7 +8,9 @@
 #   env:   REPO=initialed85/<packname>  PRIVATE=1  DRY=1  CARD_DIR=<project dir>  COMMIT_MSG
 #
 # Card files (from CARD_DIR): README.md LICENSE LICENSE-QWEN NOTICE NOTICE-CONVERSION.md
-# .gitattributes SHA256SUMS.txt provenance.json measurements.json scripts/ docs/
+# .gitattributes SHA256SUMS.txt provenance.json measurements.json scripts/ docs/ fixtures/
+# measurements/ publishes allow-listed (manifests, tables, write-ups). `logs/` and llmprobe's case-level
+# report blobs are NOT card content: they carry third-party corpora text (see measurements/eval/README.md).
 set -euo pipefail
 
 PACK="${1:?usage: publish.sh <pack_dir> [repo]}"; PACK="${PACK/#\~/$HOME}"
@@ -37,7 +39,23 @@ done
 
 CARD_FILES=(README.md LICENSE LICENSE-QWEN NOTICE NOTICE-CONVERSION.md .gitattributes
             SHA256SUMS.txt provenance.json measurements.json)
-CARD_DIRS=(scripts docs logs)
+CARD_DIRS=(scripts docs fixtures)
+
+# `logs/` is deliberately NOT a card dir. The run logs carry the decks' question text and the models'
+# answers (LiveBench's five are from a private benchmark and are not publishable at all), so they stay
+# in the working tree. Same for llmprobe's case-level reports under measurements/eval/: what publishes
+# is the manifest (score, arms, cost, report_sha256) plus the write-ups — see measurements/eval/README.md.
+# The manifests anchor a report by hash: re-run the deck and `shasum -a 256` should match `report_sha256`.
+
+# measurements publishes through a staging dir, not by copying the tree: the tree holds report blobs we
+# must never upload, so the filter is an allow-list, not a deny-list (a new deny-list entry cannot leak
+# a corpora by being forgotten).
+MEAS_STAGE="$CARD_DIR/.publish-stage"
+stage_measurements() {
+  rm -rf "$MEAS_STAGE" 2>/dev/null
+  rsync -a --include='*/' --include='*manifest.json' --include='kld/*.json' --include='*.csv' --include='*.md' --exclude='*' \
+    "$CARD_DIR/measurements/" "$MEAS_STAGE/measurements/"
+}
 
 # A filename carrying a control character (this bit us: two capture logs whose names embedded newlines,
 # because an older 08-capture.sh built the name from an unsanitised label) uploads fine but is
@@ -66,8 +84,11 @@ echo "card : $CARD_DIR"
 echo "pack : $PACK ($(du -sh "$PACK" | cut -f1), $(find "$PACK" -type f | wc -l | tr -d ' ') files)"
 
 if [[ "$DRY" == 1 ]]; then
-  echo "DRY: would create repo, upload card files ${CARD_FILES[*]} ${CARD_DIRS[*]},"
+  echo "DRY: would create repo, upload card files ${CARD_FILES[*]} ${CARD_DIRS[*]} + staged measurements,"
   echo "     then $(find "$PACK" -type f | wc -l | tr -d ' ') pack files to the repo root."
+  stage_measurements; echo "DRY: staged measurements set ($(find "$MEAS_STAGE" -type f 2>/dev/null | wc -l | tr -d ' ') files):"
+  find "$MEAS_STAGE" -type f 2>/dev/null | sed 's|^|    |'
+  rm -rf "$MEAS_STAGE" 2>/dev/null
   exit 0
 fi
 
@@ -93,6 +114,13 @@ done
 for d in "${CARD_DIRS[@]}"; do
   [[ -d "$CARD_DIR/$d" ]] && { echo "card  $d/"; "$HF" upload "$REPO" "$CARD_DIR/$d" "$d" --repo-type model; }
 done
+
+# 2b) measurements: allow-listed staging copy (manifests, tables, write-ups) — no report blobs, no lockfiles
+stage_measurements
+nstage=$(find "$MEAS_STAGE" -type f | wc -l | tr -d ' ')
+echo "card  measurements/ ($nstage files staged of $(find "$CARD_DIR/measurements" -type f | wc -l | tr -d ' ') in the tree)"
+"$HF" upload "$REPO" --repo-type model --local-dir "$MEAS_STAGE" \
+  --commit-message "eval + KLD evidence: manifests, arms-matched tables, write-ups (aggregate only; corpora not redistributed)"
 
 # 3) weights, one file at a time (Xet/LFS; ~40 min at 30 MB/s up on the hardline)
 #
