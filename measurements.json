@@ -562,6 +562,55 @@
     "cases_without_generation": null
    }
   },
-  "comparability_note": "all four rows share effort (medium code / xhigh hard), cap 16000, concurrency 2, greedy t=0 and the same server flags; only --model changes. Scores are latency-independent, so the shared-engine pilot's 82/100 and the clean 81/100 differ by 1/100 = the run-to-run band, not a finding. The Olympiad 0/10 on BOTH packs means that sub-deck carries no discriminating signal at these arms: both packs reason for 1.5k-16k tokens and emit no Answer: line. beamster's card claims LLMProbe Hard 50 = 88.0 %; we measure 36/50 with their pack on our server, so their claim is not reproduced under these arms (their serving flags/effort are not ours)."
+  "comparability_note": "all four rows share effort (medium code / xhigh hard), cap 16000, concurrency 2, greedy t=0 and the same server flags; only --model changes. Scores are latency-independent, so the shared-engine pilot's 82/100 and the clean 81/100 differ by 1/100 = the run-to-run band, not a finding. The Olympiad 0/10 on BOTH packs means that sub-deck carries no discriminating signal at these arms: both packs reason for 1.5k-16k tokens and emit no Answer: line. beamster's card claims LLMProbe Hard 50 = 88.0 %; we measure 36/50 with their pack on our server, so their claim is not reproduced under these arms (their serving flags/effort are not ours).",
+  "slice_rows_olympiad_budget4096": {
+   "ours": {
+    "passed": 1,
+    "total": 10,
+    "suite": "hard-olympiad (10/50 slice)",
+    "arms": {
+     "sampling": "greedy t=0 (llmprobe default)",
+     "reasoning_effort": "xhigh",
+     "concurrency": 2,
+     "max_output_tokens_per_question": 16000,
+     "server_flags": "./sushi serve --mtp --mtp-min-depth 1 --mtp-max-depth 2 --mtp-typical 0.1 --host 0.0.0.0 --port 8088 --prefix-cache-entries 4 --prefix-cache-mem 8GB --prefix-cache-disk 0 --max-concurrent 4 --kv-quant 8 --temp 1.0 --top-p 0.95 --top-k 20 --ctx-size 131072 --prefill-chunk 8192 --qwen-gdn 16 --expert-pick-tolerance 0.3 --metrics --reasoning-budget 4096 --model /Users/edwardbeech/.sushi/models/initialed85/Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw/"
+    },
+    "report": "beamster_Qwen3.8-Flash-Next-Sushi-2.6bpw__hard-olympiad-20261026T014426Z.json",
+    "cases_without_final_text": 5,
+    "cases_without_generation": 0,
+    "cost": {
+     "duration_s": 1204.8,
+     "output_tokens": 38019,
+     "input_tokens": 2510,
+     "mean_output_tokens_per_question": 3801.9,
+     "mean_reasoning_tokens_per_question": 3043.0
+    },
+    "measured_utc": "20261026T012346Z"
+   },
+   "theirs": {
+    "passed": 2,
+    "total": 10,
+    "suite": "hard-olympiad (10/50 slice)",
+    "arms": {
+     "sampling": "greedy t=0 (llmprobe default)",
+     "reasoning_effort": "xhigh",
+     "concurrency": 2,
+     "max_output_tokens_per_question": 16000,
+     "server_flags": "./sushi serve --mtp --mtp-min-depth 1 --mtp-max-depth 2 --mtp-typical 0.1 --host 0.0.0.0 --port 8088 --prefix-cache-entries 4 --prefix-cache-mem 8GB --prefix-cache-disk 0 --max-concurrent 4 --kv-quant 8 --temp 1.0 --top-p 0.95 --top-k 20 --ctx-size 131072 --prefill-chunk 8192 --qwen-gdn 16 --expert-pick-tolerance 0.3 --metrics --reasoning-budget 4096 --model /Users/edwardbeech/.sushi/models/beamster/Qwen3.8-Flash-Next-Sushi-2.6bpw/"
+    },
+    "report": "beamster_Qwen3.8-Flash-Next-Sushi-2.6bpw__hard-olympiad-20261026T014426Z.json",
+    "cases_without_final_text": 6,
+    "cases_without_generation": 0,
+    "cost": {
+     "duration_s": 1151.6,
+     "output_tokens": 33000,
+     "input_tokens": 2510,
+     "mean_output_tokens_per_question": 3300.0,
+     "mean_reasoning_tokens_per_question": 2947.0
+    },
+    "measured_utc": "20261026T014426Z"
+   },
+   "finding": "Olympiad at PRODUCTION arms is 0/10 for BOTH packs because neither emits an Answer: line (proof-mode writes the proof into the content channel and stops). At arms --reasoning-budget 4096 (via ~/run-sushi-budget.sh, EXTRA_FLAGS) the thinking is clamped to 4119 tokens on the cases that hit it (5/10 ours, 4/10 theirs) and exactly those cases emit graded content: ours 1/10 (11 vs 2; 3976036 vs 3986729; 25/2 PASS; 1002 vs 1003), theirs 2/10 (4041417 vs 3986729; 25/2 PASS; 1003 PASS). Cases whose thinking finished under the budget stay proof-mode with empty content. CONCLUSION: the 0/10 was a format/channel artifact, but forcing the answer does NOT reveal hidden competence - at 2.6bpw+kv8 Olympiad is genuinely ~1-2/10, and 1 vs 2 at n=10 is noise. Report Olympiad as non-discriminating, never as a capability score."
+  }
  }
 }

@@ -8,7 +8,15 @@
 #   CHECK=1 scripts/13-eval-queue.sh          print the plan, touch nothing
 #   scripts/13-eval-queue.sh                  run the whole queue (hours; run it under nohup)
 #   JOBS="ours:hard,theirs:code" ...          any subset, in order  (pack = ours|theirs)
-#   SUITE defaults per job pair; CONCURRENCY / LLP / MAX_TOKENS / REASONING pass through to 11-eval.sh
+#   JOBS="ours:hard:olympiad,theirs:hard:olympiad"
+#                               a third field is llmprobe's --eval-cases alias (a SUB-DECK slice).
+#                               It is a different deck size, so it is its own table: never blend a
+#                               slice row with the full-deck rows. Aliases llmprobe accepts:
+#                               olympiad, mmlupro, livebench, juliet, humaneval, mbpp, code.
+#   RUNNER=~/run-sushi-budget.sh  alternate launcher (measurement arms only). The queue still
+#                               restores production with ~/run-sushi.sh whatever RUNNER is.
+#   EXTRA_FLAGS="--reasoning-budget 4096"  forwarded to RUNNER; 11-eval.sh records the live serve
+#                               command line in the manifest, so the arms travel with the row.
 #
 # Resumable: a job is skipped if its report JSON already exists (`.done` marker per job label).
 # Takes the box: it stops the server, which means 45 tok/s of production inference is down for the
@@ -60,7 +68,10 @@ plan() {
   local i=0
   for j in "${JOBS_ARR[@]}"; do
     i=$((i+1))
-    local pack="${j%%:*}" suite="${j##*:}"
+    local pack="${j%%:*}" cases=""
+    local rest="${j#*:}"; local suite="${rest%%:*}"
+    [ "$rest" != "$suite" ] && cases="${rest#*:}"
+    local label="$suite"; [ -n "$cases" ] && label="${suite}-${cases}"
     local dir id; case "$pack" in
       ours) dir="$OURS_DIR"; id="$OURS_ID";;
       theirs) dir="$THEIRS_DIR"; id="$THEIRS_ID";;
@@ -68,11 +79,11 @@ plan() {
     esac
     local eff; case "$suite" in code) eff="medium";; *) eff="xhigh";; esac
     [ -n "${REASONING:-}" ] && eff="$REASONING"
-    printf '%2d. stop server -> serve %s -> warm -> SUITE=%s effort=%s conc=%s cap=%s\n' \
-      "$i" "$pack" "$suite" "$eff" "$CONCURRENCY" "$MAX_TOKENS"
+    printf '%2d. stop server -> serve %s -> warm -> SUITE=%s effort=%s conc=%s cap=%s%s\n' \
+      "$i" "$pack" "$suite" "$eff" "$CONCURRENCY" "$MAX_TOKENS" "${cases:+ SLICE --eval-cases=$cases}"
     printf '    eval target: %s (dir %s)\n' "$id" "$dir"
   done
-  printf 'last job leaves the server serving: %s\n' "${JOBS_ARR[${#JOBS_ARR[@]}-1]%%:*}"
+  printf 'queue end / exit trap: server restored to OURS_DIR with the PRODUCTION launcher (~/run-sushi.sh)\n'
 }
 
 if [ "${CHECK:-0}" = "1" ]; then plan; exit 0; fi
@@ -88,7 +99,7 @@ restore_production() {  # never leave the box with no server serving our pack
     rm -f "$LOCK"; return 0
   fi
   if ! serving "$OURS_ID"; then
-    log "EXIT TRAP: $OURS_ID is not resident and ready; restarting it"
+    log "EXIT TRAP: $OURS_ID is not resident and ready; restarting it with the PRODUCTION launcher"
     ( cd "$SUSHI_DIR" && MODEL="$OURS_DIR/" nohup bash "$HOME/run-sushi.sh" >>"$LOGDIR/server-$STAMP.log" 2>&1 & )
     sleep 20
   fi
@@ -107,14 +118,14 @@ python3 "$REPO/scripts/pack-check.py" "$THEIRS_DIR" >/dev/null 2>&1 || { echo "R
 log "eval queue starting: $JOBS"
 log "boxes: server downtime for the whole queue; production inference will be down"
 
-serve() {  # serve <dir> ; restart the server on a pack, wait for ready + loaded
-  local dir="$1" id="$2"
+serve() {  # serve <dir> <id> [runner] ; restart the server on a pack, wait for ready + loaded
+  local dir="$1" id="$2" runner="${3:-$HOME/run-sushi.sh}"
   log "stopping server (if any)"
   "$HOME/stop-sushi.sh" >>"$LOG" 2>&1 || true
   sleep 3
-  log "starting server on $id (cwd $SUSHI_DIR, script $HOME/run-sushi.sh)"
+  log "starting server on $id (cwd $SUSHI_DIR, script $runner, EXTRA_FLAGS=${EXTRA_FLAGS:-none})"
   # run-sushi.sh invokes ./sushi, so it must run with cwd = the dir holding the sushi binary
-  ( cd "$SUSHI_DIR" && MODEL="$dir/" nohup bash "$HOME/run-sushi.sh" >>"$LOGDIR/server-$STAMP.log" 2>&1 & )
+  ( cd "$SUSHI_DIR" && MODEL="$dir/" EXTRA_FLAGS="${EXTRA_FLAGS:-}" nohup bash "$runner" >>"$LOGDIR/server-$STAMP.log" 2>&1 & )
   local t=0
   until curl -s -m 5 "$BASE/v1/models" 2>/dev/null | python3 -c "
 import json,sys
@@ -152,7 +163,7 @@ sys.exit(0 if c.strip() else 1)' && echo yes || echo no)"
       log "WARM CHECK FAILED: engine answered with no text; full restart (this is the failure mode that scores 0/100 in 3 s)"
       "$HOME/stop-sushi.sh" >>"$LOG" 2>&1 || true
       sleep 5
-      ( cd "$SUSHI_DIR" && MODEL="$dir/" nohup bash "$HOME/run-sushi.sh" >>"$LOGDIR/server-$STAMP.log" 2>&1 & )
+      ( cd "$SUSHI_DIR" && MODEL="$dir/" EXTRA_FLAGS="${EXTRA_FLAGS:-}" nohup bash "$runner" >>"$LOGDIR/server-$STAMP.log" 2>&1 & )
       local t2=0
       until curl -s -m 5 "$BASE/v1/models" 2>/dev/null | python3 -c "
 import json,sys
@@ -174,15 +185,17 @@ sys.exit(0 if m and m[0].get('loaded') and m[0].get('state')=='ready' else 1)" 2
 i=0
 for job in "${JOBS_ARR[@]}"; do
   i=$((i+1))
-  pack="${job%%:*}"; suite="${job##*:}"
+  pack="${job%%:*}"; rest="${job#*:}"; suite="${rest%%:*}"; cases=""
+  [ "$rest" != "$suite" ] && cases="${rest#*:}"
   case "$pack" in ours) dir="$OURS_DIR"; id="$OURS_ID";; *) dir="$THEIRS_DIR"; id="$THEIRS_ID";; esac
-  tag="$(echo "$id" | tr '/:' '__')__${suite}"
+  label="$suite"; [ -n "$cases" ] && label="${suite}-${cases}"
+  tag="$(echo "$id" | tr '/:' '__')__${label}"
   if ls "$OUT/${tag}-"*.json >/dev/null 2>&1; then
     log "job $i ($tag): report already exists, skipping"
     continue
   fi
   log "job $i of ${#JOBS_ARR[@]}: $tag"
-  serve "$dir" "$id"
+  serve "$dir" "$id" "${RUNNER:-$HOME/run-sushi.sh}"
   log "job $i: running suite=$suite model=$id"
   case "$suite" in code) budget=90;; core) budget=360;; *) budget=300;; esac
   [ -n "$JOB_TIMEOUT_MIN" ] && budget="$JOB_TIMEOUT_MIN"
@@ -194,7 +207,7 @@ for job in "${JOBS_ARR[@]}"; do
       kill -TERM $pids 2>/dev/null || true
     fi ) &
   wpid=$!
-  SUITE="$suite" CONCURRENCY="$CONCURRENCY" MAX_TOKENS="$MAX_TOKENS" LLP="$LLP" FORCE=1 \
+  SUITE="$suite" CASES="$cases" CONCURRENCY="$CONCURRENCY" MAX_TOKENS="$MAX_TOKENS" LLP="$LLP" FORCE=1 \
     "$REPO/scripts/11-eval.sh" "$id" >>"$LOG" 2>&1
   rc=$?
   [ -n "${wpid:-}" ] && kill "$wpid" 2>/dev/null || true
@@ -210,7 +223,7 @@ final_id="$OURS_ID"; final_dir="$OURS_DIR"
 last="${JOBS_ARR[${#JOBS_ARR[@]}-1]}"; [ "${last%%:*}" = "theirs" ] && { final_id="$THEIRS_ID"; final_dir="$THEIRS_DIR"; }
 if ! serving "$OURS_ID"; then
   log "restoring server to $OURS_ID (it was not resident and ready)"
-  serve "$OURS_DIR" "$OURS_ID"
+  serve "$OURS_DIR" "$OURS_ID" "$HOME/run-sushi.sh"
 fi
 log "queue complete; server serving $(served_id)"
 log "render with: scripts/12-eval-table.py measurements/eval"

@@ -24,6 +24,10 @@
 # CONCURRENCY=n server streams in flight (default 4 = the server's --max-concurrent)
 # MAX_TOKENS=n  per-question output cap (default 16000, matching beamster's card)
 # QUESTIONS=n   first n questions only (default: all) — for pilots
+# CASES=alias   sub-deck selector, llmprobe's --eval-cases (default: all). Aliases llmprobe accepts:
+#               olympiad|olympiadbench (OlympiadBench), mmlupro, livebench, juliet, humaneval, mbpp,
+#               code. A CASES row is a SMALLER DECK at possibly different server flags — it gets its
+#               own table and must never be blended with the full-deck rows.
 # LLP=ver       llmprobe version to pin (default 0.6.12, the version beamster's card reports)
 # OUT=dir       report dir (default <repo>/measurements/eval)
 # FORCE=1       skip the "is the server idle-ish" advisory
@@ -35,7 +39,11 @@ SUITE="${SUITE:-code}"
 LLP="${LLP:-0.6.12}"
 MAX_TOKENS="${MAX_TOKENS:-16000}"
 CONCURRENCY="${CONCURRENCY:-2}"
+# The report/manifest label carries the sub-deck so a 10-case slice cannot collide with, or be
+# mistaken for, a 50-case row.
+LABEL="$SUITE"; [ -n "$CASES" ] && LABEL="${SUITE}-${CASES}"
 QUESTIONS="${QUESTIONS:-}"
+CASES="${CASES:-}"
 BASE="${BASE:-http://127.0.0.1:8088}"
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 
@@ -91,15 +99,17 @@ N_INFLIGHT="$(curl -s -m 5 "${BASE}/metrics" 2>/dev/null | grep -cE '^sushi_(req
 BIN="$(command -v npx || true)"
 [ -n "$BIN" ] || { echo "REFUSE: npx not found (llmprobe is an npm package, Apache-2.0)."; exit 1; }
 
-REPORT_NAME="$(echo "$MODEL" | tr '/:' '__')__${SUITE}-${STAMP}.json"
+REPORT_NAME="$(echo "$MODEL" | tr '/:' '__')__${LABEL}-${STAMP}.json"
 CMD=(npx -y "llmprobe@${LLP}" "$BASE" -m "$MODEL" --eval-only --eval-suite "$SUITE"
      --reasoning "$REASONING" --concurrency "$CONCURRENCY" --eval-max-tokens "$MAX_TOKENS"
-     --label "${SUITE}/${REASONING} kv8 cap${MAX_TOKENS} llmprobe-${LLP}"
+     --label "${LABEL}/${REASONING} kv8 cap${MAX_TOKENS} llmprobe-${LLP}"
      --json --save "$OUT/$REPORT_NAME")
 [ -n "$QUESTIONS" ] && CMD+=(--eval-questions "$QUESTIONS")
+[ -n "$CASES" ] && CMD+=(--eval-cases "$CASES")
 
 REPORT="$OUT/$REPORT_NAME"
-echo "== llmprobe ${LLP} :: suite=$SUITE effort=$REASONING concurrency=$CONCURRENCY cap=$MAX_TOKENS sampling=greedy(t=0) =="
+echo "== llmprobe ${LLP} :: suite=$LABEL effort=$REASONING concurrency=$CONCURRENCY cap=$MAX_TOKENS sampling=greedy(t=0) =="
+[ -n "$CASES" ] && echo "   sub-deck: --eval-cases $CASES (this is a SLICE, its own table)"
 echo "   model: $MODEL"
 echo "   server: ${SRV_FLAGS:-<not running under this user>}"
 echo "   report: $REPORT"
@@ -123,7 +133,7 @@ set -e
 # ---- record the arms alongside the report -------------------------------------------------
 # ---- validity of what came back ----------------------------------------------------------
 # 14-manifest.py exits 1 (and set -e stops us) when the report is not a measurement.
-python3 "$REPO/scripts/14-manifest.py" "$REPORT" "$MODEL" "$SUITE" "$REASONING" "$CONCURRENCY" "$MAX_TOKENS" "$LLP" "$SRV_FLAGS" "$STAMP"
+python3 "$REPO/scripts/14-manifest.py" "$REPORT" "$MODEL" "$LABEL" "$REASONING" "$CONCURRENCY" "$MAX_TOKENS" "$LLP" "$SRV_FLAGS" "$STAMP"
 
 # A report that the validity step rejected exits 1; do not let it look like a completed job.
 if [ "$RC" != "0" ]; then
