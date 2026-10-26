@@ -283,7 +283,26 @@ SUITE=hard scripts/11-eval.sh <served-model-id>   # 50 questions: MMLU-Pro / Oly
 scripts/12-eval-table.py measurements/eval        # arms-matched table + per-source breakdown
 scripts/13-eval-queue.sh                          # ours:hard, theirs:hard, theirs:code, ours:code
 CHECK=1 scripts/13-eval-queue.sh                  # plan only
+SUITE=hard CASES=olympiad scripts/11-eval.sh <served-model-id>       # 10-question sub-deck slice
+CHECK=1 SUITE=hard CASES=olympiad scripts/11-eval.sh <served-model-id>
+RUNNER="$HOME/run-sushi-budget.sh" EXTRA_FLAGS="--reasoning-budget 4096" \
+  JOBS="ours:hard:olympiad,theirs:hard:olympiad" scripts/13-eval-queue.sh   # slice at budgeted arms
 ```
+
+`CASES=` is llmprobe's `--eval-cases` selector (aliases it accepts: `olympiad`, `mmlupro`,
+`livebench`, `juliet`, `humaneval`, `mbpp`, `code`); `JOBS="pack:suite:cases"` puts the same slice
+through the queue for both packs. A slice is a **different deck size**, so it is its own table row:
+`11-eval.sh` folds it into the report/manifest label (`hard-olympiad`) and `12-eval-table.py` prints
+it as `hard-olympiad (SUB-DECK slice, 10 q)` plus a `serving` column taken from the live serve
+command line, so a 10-question row cannot sit beside a 50-question row under the same word. It
+also refuses to print two same-suite rows of different deck sizes that are *not* labelled as slices.
+
+`RUNNER=` swaps the launcher for the measurement arms only — `~/run-sushi-budget.sh` is a copy of
+`~/run-sushi.sh` with `EXTRA_FLAGS` injected, used for arms like `--reasoning-budget 4096` that
+change what every request can do. **Production `~/run-sushi.sh` never carries measurement flags**, and
+the queue restores production with `~/run-sushi.sh` whatever `RUNNER` was. Never edit `~/run-sushi.sh`
+while the server is running from it: bash reads a running script lazily, so inserting bytes shifts
+the re-parse offset when the engine exits.
 
 `13-eval-queue.sh` is the comparison run: per job it stops the server, restarts it on one pack with
 identical flags (`~/run-sushi.sh` with `MODEL=`), waits for `loaded=true state=ready` after a warm

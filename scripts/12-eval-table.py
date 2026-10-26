@@ -50,6 +50,49 @@ def arms(row):
             (a.get("server_flags") or "").replace("\\n", " "))
 
 
+def suite_label(row):
+    """Report suite (llmprobe's own word) plus the sub-deck the manifest recorded.
+
+    llmprobe writes its suite name into the report ("hard") and knows nothing about --eval-cases,
+    so a 10-question slice would otherwise sit in the same table as a 50-question row under the
+    same word. The manifest carries the slice (11-eval.sh passes SUITE-CASES), so surface it here
+    and refuse to let an unlabelled pair of same-suite rows differ in deck size."""
+    rr = row["j"].get("reasoning", {})
+    base = rr.get("suite") or "?"
+    man = (row.get("m") or {}).get("suite") or base
+    if man != base:
+        return f"{man} (SUB-DECK slice, {rr.get('total')} q)"
+    return base
+
+
+def serving_arms(row):
+    """Serving-side arms that llmprobe does not record per row but that change what a score means.
+
+    --reasoning-budget caps thinking for every request on that server, so two rows with the same
+    effort/cap/cap-concurrency are NOT comparable when one server had a budget and the other did not.
+    """
+    flags = (row.get("m") or {}).get("arms", {}).get("server_flags", "") or ""
+    import re
+    b = re.search(r"--reasoning-budget\s+(\d+)", flags)
+    return f"budget {b.group(1)}" if b else "no budget"
+
+
+def ambiguity(rows):
+    """Rows that share model+suite but not deck size, with no slice label, are a silent trap."""
+    seen = {}
+    for r in rows:
+        rr = r["j"].get("reasoning", {})
+        seen.setdefault((r["j"]["target"]["model"], suite_label(r).split(" (SUB-DECK")[0]),
+                         set()).add(rr.get("total") or 0)
+    out = []
+    for (model, suite), totals in seen.items():
+        if len(totals) > 1 and all("SUB-DECK" not in suite_label(r) for r in rows
+                                   if (r["j"]["target"]["model"], suite_label(r).split(" (SUB-DECK")[0]) == (model, suite)):
+            out.append(f"AMBIGUOUS: {model} suite={suite} has deck sizes {sorted(totals)} with no slice label — "
+                       "the smaller row is not a full-deck score and the label does not say so")
+    return out
+
+
 def main() -> int:
     if len(sys.argv) < 2:
         print(__doc__)
@@ -60,7 +103,7 @@ def main() -> int:
         print(f"no eval reports in {sys.argv[1]}")
         return 1
 
-    good.sort(key=lambda r: (r["j"]["target"]["model"], r["j"]["reasoning"].get("suite", "?")))
+    good.sort(key=lambda r: (r["j"]["target"]["model"], suite_label(r)))
 
     print("# Task-level eval")
     print()
@@ -72,8 +115,8 @@ def main() -> int:
           "A question that hits the output cap with no answer line is counted as *out of tokens* "
           "and reported apart from wrong.")
     print()
-    print("| model | suite | passed | score | out of tokens | errors | effort | cap | conc | sampling | output tok | reasoning tok/q | wall |")
-    print("|---|---|---|---|---|---|---|---|---|---|---|---|---|")
+    print("| model | suite | passed | score | out of tokens | errors | effort | cap | conc | sampling | serving | output tok | reasoning tok/q | wall |")
+    print("|---|---|---|---|---|---|---|---|---|---|---|---|---|---|")
     for r in good:
         j, m = r["j"], r.get("m", {})
         rr = j["reasoning"]
@@ -81,9 +124,9 @@ def main() -> int:
         acc = 100.0 * (rr.get("passed") or 0) / tot if tot else 0
         a = arms(r)
         cost = m.get("cost", {})
-        print(f"| {j['target']['model']} | {rr.get('suite')} | {rr.get('passed')}/{tot} | "
+        print(f"| {j['target']['model']} | {suite_label(r)} | {rr.get('passed')}/{tot} | "
               f"**{acc:.1f} %** | {rr.get('stopped')} | {rr.get('error')} | {a[0]} | {a[1]} | {a[2]} | "
-              f"{a[3]} | {cost.get('output_tokens', (j.get('usage') or {}).get('outputTokens'))} | "
+              f"{a[3]} | {serving_arms(r)} | {cost.get('output_tokens', (j.get('usage') or {}).get('outputTokens'))} | "
               f"{cost.get('mean_reasoning_tokens_per_question')} | {cost.get('duration_s', round(j.get('durationMs', 0)/1000, 1))} s |")
     print()
     print("## Per source")
@@ -98,12 +141,17 @@ def main() -> int:
         for s in srcs:
             b = by.get(s)
             cells.append(f"{b['passed']}/{b['total']}" if b else "-")
-        print(f"| {r['j']['target']['model']} | {rr.get('suite')} | " + " | ".join(cells) + " |")
+        print(f"| {r['j']['target']['model']} | {suite_label(r)} | " + " | ".join(cells) + " |")
     print()
+    for w in ambiguity(good):
+        print(w)
+    if ambiguity(good):
+        print()
     print("Suites are not comparable to each other (llmprobe says so explicitly: *Hard runs are "
           "reported as such and are not comparable to core runs*). A `--sampling` preset run is not "
           "comparable to a greedy run. Two rows are only comparable when effort, output cap, KV "
-          "quantisation and MTP match — read the arms columns before comparing any two rows.")
+          "quantisation and MTP match — read the arms columns (including *serving*: a "
+          "`--reasoning-budget` on the server caps thinking for every request) before comparing any two rows.")
 
     bad = [r for r in rows if r["err"]]
     if bad:
@@ -117,17 +165,18 @@ def main() -> int:
         with open(out, "w", newline="") as fh:
             w = csv.writer(fh)
             w.writerow(["model", "suite", "passed", "total", "acc_pct", "stopped_cap", "errors",
-                        "effort", "cap", "concurrency", "sampling", "output_tokens",
-                        "reasoning_tokens_per_q", "duration_s", "tool_version", "report"])
+                        "effort", "cap", "concurrency", "sampling", "serving",
+                        "output_tokens", "reasoning_tokens_per_q", "duration_s", "tool_version", "report"])
             for r in good:
                 j, m = r["j"], r.get("m", {})
                 rr = j["reasoning"]
                 a = arms(r)
                 cost = m.get("cost", {})
                 tot = rr.get("total") or 0
-                w.writerow([j["target"]["model"], rr.get("suite"), rr.get("passed"), tot,
+                w.writerow([j["target"]["model"], suite_label(r), rr.get("passed"), tot,
                             round(100.0 * (rr.get("passed") or 0) / tot, 2) if tot else None,
                             rr.get("stopped"), rr.get("error"), a[0], a[1], a[2], a[3],
+                            serving_arms(r),
                             cost.get("output_tokens", (j.get("usage") or {}).get("outputTokens")),
                             cost.get("mean_reasoning_tokens_per_question"),
                             cost.get("duration_s", round(j.get("durationMs", 0) / 1000, 1)),

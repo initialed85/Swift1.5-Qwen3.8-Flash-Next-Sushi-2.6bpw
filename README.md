@@ -385,6 +385,13 @@ What that says, in the plainest terms I can defend:
   of reasoning and then no `Answer:` line at all** (9 stopped, 1 hit the cap). That is a genuine
   answer-emission failure of both packs at these arms, and it caps both hard scores by up to 10
   questions. A hard-deck number quoted from this box without that caveat is misleading.
+  I chased that failure mode instead of leaving it as a zero: at `--reasoning-budget 4096` (a
+  separate launcher, `~/run-sushi-budget.sh`, never production) thinking is clamped to 4 119 tokens
+  on the cases where it was long — 5/10 for ours, 4/10 for theirs — and exactly those cases then
+  emit an `Answer:` line: **ours 1/10, theirs 2/10** on the 10-question slice. Answers are visible
+  and near-misses are real (`1002` vs `1003`, `3 976 036` vs `3 986 729`). So the 0/10 was a
+  format/channel artifact, **not hidden competence**: at 2.6 bpw + kv8 this deck is genuinely ~1–2/10,
+  and 1 vs 2 at n=10 is noise. Full detail: `measurements/eval/failures-by-source.md`.
 - **beamster's card claims "LLMProbe Hard 50 — 88.0 %".** With *their* pack, on *our* server, at the
   arms above, we measure **72.0 %** (36/50). Their claim is not reproduced here — most plausibly
   because their run used different serving flags, effort or deck revision than ours, which is exactly
