@@ -404,7 +404,7 @@ grades deterministically — execution for code, `Answer:`-line matching for the
 |---|---|---|
 | `--eval-suite code` | 100 JavaScript functions: 50 HumanEval + 50 MBPP (MultiPL-E ports) | **executes** the model's function against the ported asserts (`node:vm`, 3 s cap) |
 | `--eval-suite hard` | 50 questions: 30 MMLU-Pro, 10 OlympiadBench, 5 LiveBench (zebra), 5 NIST Juliet reductions | normalised `Answer:` line vs the published answer and its listed equivalent forms |
-| `--eval-suite core` | 92: GPQA Diamond, SuperGPQA, AIME 2025, COMPSEC | as above; **never run on this box** (see below) — the two rows above are the only deck measurements this card makes. **Suites are not comparable to each other** (llmprobe's rule, quoted in its README) |
+| `--eval-suite core` | 92: GPQA Diamond, SuperGPQA, AIME 2025, COMPSEC | as above; **run on this box** — ours landed 69/92 (75.0 %, a floor), theirs produced no report (see the core row below). **Suites are not comparable to each other** (llmprobe's rule, quoted in its README) |
 
 The `hard` deck is the same test behind beamster's card line *"LLMProbe Hard 50 — 88.0 %"*, which
 matters because it is the only claim of that kind we could check against someone else's pack —
@@ -416,8 +416,8 @@ Arms, pinned, identical for both packs — only `--model` moves:
 
 ```bash
 llmprobe 0.6.12                 # the version beamster's card reports
---eval-suite code|hard          # greedy t=0 (tool default)
-code: --reasoning medium        hard: --reasoning xhigh     # xhigh is what their card reports
+--eval-suite code|hard|core    # greedy t=0 (tool default)
+code: --reasoning medium        hard+core: --reasoning xhigh   # xhigh is what their card reports
 --concurrency 2                 # half the server's --max-concurrent 4; never sat
 --eval-max-tokens 16000         # = their card's cap
 server: --kv-quant 8 --mtp --ctx-size 131072 --qwen-gdn 16 --expert-pick-tolerance 0.3
@@ -427,13 +427,14 @@ So a pair of rows measures the pack *as served on this server*, kv8 penalty, 16-
 0.3 expert-pick tolerance included — which is what a user of this box gets, and is **not** a
 weights-only quality number and **not** a teacher KLD.
 
-### The four rows, all on arms that match each other
+### The deck rows, all on arms that match each other
 
-Every row below is greedy t=0, effort medium on code / xhigh on hard, `--concurrency 2`, 16 k output
-cap, and the same server flags (`--kv-quant 8 --mtp --qwen-gdn 16 --expert-pick-tolerance 0.3 …`) —
+Every row in this card is greedy t=0, effort medium on code / xhigh on hard and core, `--concurrency 2`,
+16 k output cap, and the same server flags (`--kv-quant 8 --mtp --qwen-gdn 16 --expert-pick-tolerance 0.3 ...`)
 **only `--model` changes between rows**, so a pair of rows in the same deck is a like-for-like
-comparison. Full arms and cost per row are in the `*-manifest.json` files next to each report
-(render them with `scripts/12-eval-table.py measurements/eval`).
+comparison. The code and hard decks both landed for both packs, so they have real like-for-like pairs;
+the core row is ours-only for now (see the core section below). Full arms and cost per row are in the
+`*-manifest.json` files next to each report (render them with `scripts/12-eval-table.py measurements/eval`).
 
 | pack | code (100) | HumanEval / MBPP | hard (50) | MMLU-Pro / Olympiad / LiveBench / Juliet | wall |
 |---|---|---|---|---|---|
@@ -468,21 +469,44 @@ What that says, in the plainest terms I can defend:
 - Run-to-run spread: the same pack, deck and arms scored 82/100 and 81/100 (pilot vs clean), so
   **±1/100 is noise, not a finding**. The 5-question code gap is 5× that band, so it is a real gap.
 
-### Not measured, deliberately open
+### The core row — measured, ours only for now
 
-`--eval-suite core` (92: GPQA Diamond, SuperGPQA, AIME 2025, COMPSEC) has **never been run on this
-box**, for either pack. At these arms it costs roughly 3–5 h per pack (the hard rows were 87/130 min
-for 50 questions), so it was skipped, not failed. If it ever gets run, it is a new deck row in the
-same arms set and nothing else changes:
+`--eval-suite core` (92: GPQA Diamond, SuperGPQA, AIME 2025, COMPSEC) was run on this box on
+2026-10-26/27 at the arms above (xhigh, concurrency 2, 16 k cap, same server flags). Ours finished;
+theirs did not:
 
-```bash
-JOBS="ours:core,theirs:core" scripts/13-eval-queue.sh     # ~6–10 h, restarts the server per job
-```
+| pack | core (92) | AIME 2025 / GPQA Diamond / SuperGPQA / COMPSEC | no-Answer-line | cap-stopped | wall |
+|---|---|---|---|---|---|
+| **ours** (`initialed85/…-Sushi-2.6bpw`) | **69/92 (75.0 %)** | 11/25 · 19/24 · 21/25 · 17/17 | 16 | 3 | 3 h 30 min |
+| **theirs** (`beamster/Qwen3.8-Flash-Next-…`) | **no report** | — | — | — | killed at 6 h 57 m |
 
-Until then: no GPQA, AIME, SuperGPQA or COMPSEC number on this card is *our* measurement — the source
-model's 0.2078 / 0.2980 GPQA-Diamond figures are quoted from the source card, and beamster's card is
-not a source for `core` on our box either. Read the card's claims as: one code deck, one hard deck,
-one budgeted 10-question slice, all on the same server.
+- **Ours: 69/92 (75.0 %), valid, and a floor.** 16 questions generated real thinking (hundreds-to-
+  thousands of tokens) and then emitted no `Answer:` line — the same answer-emission failure mode
+  the Olympiad 0/10 showed — and 3 more stopped at the 16 k output cap with no answer line. So
+  **75.0 % is what this box graded, not a point estimate of deck competence**: none of those 16 can
+  be rescued into the numerator, and some may be wrong in substance, not just in form. COMPSEC (17/17)
+  and GPQA-Diamond (modified) (1/1) were clean; AIME 2025 (11/25) is the weak half.
+- **Theirs: no report — not a number, and not comparable.** The run started 13:00Z and was still
+  going 6 h 57 m later. By a 19:34Z check the server log had ~22 min of no new output (last decode
+  activity ~19:11Z); a healthy run streams the mtp-planner every step, so that is a stall, not merely
+  slowness. I killed it at 19:58Z (rc=1). The queue's own 6 h watchdog (which was due to fire at
+  19:00Z) never did: it `SIGTERM`ed the `npm exec` wrapper (its pattern `llmprobe@0.6.12 …`), not the
+  real `node` child that writes the report, and its log line went to `/dev/null` because the queue's
+  stdout is `/dev/null` under nohup. There is no score and no partial count, and I will not invent one.
+  This is either a genuine stall on these decks at xhigh or an unusually slow run; the silence looks
+  like a stall, but the deck is long enough that I cannot rule out the other. The watchdog is now
+  fixed (it logs to the queue log and does TERM-then-KILL on the `node`), so a re-run is bounded:
+
+  ```bash
+  JOBS="theirs:core" scripts/13-eval-queue.sh     # ~3–5 h, restarts the server per job
+  ```
+
+  The queue skips `ours:core` (its report is already on disk) and restores production on our pack at
+  the end.
+
+Until a comparable `theirs:core` lands, read the card's `core` claims as ours-only: **69/92 (75.0 %, a
+floor)**. The source model's 0.2078 / 0.2980 GPQA-Diamond figures remain quoted from the source card,
+not checked, and beamster's card is not a source for `core` on our box either.
 
 ### Two things the harness had wrong, and what fixing them changed
 

@@ -41,6 +41,38 @@ kv8 on this box, **should this sub-deck have looked like this?**
 - Sum of "expected" rows: MMLU-Pro 28/30 vs 27/30, Juliet 5/5 vs 5/5, HumanEval 48/50 vs 49/50 —
   i.e. both packs are behaving like the same base model everywhere the measurement is able to see.
 
+## core suite (2026-10-26/27 — ours landed, theirs did not)
+
+Different deck, so its own table. Arms matched to the code/hard rows: greedy t=0, xhigh,
+`--concurrency 2`, 16 000 output cap, same server flags, only `--model` changes. Served by the
+production launcher (`~/run-sushi.sh`); the queue restarted the server per job. This is the one row
+where the per-source breakdown is ours-only:
+
+| pack | sub-deck | passed | capped (finish=length) | total |
+|---|---|---|---|---|
+| ours | GPQA Diamond | 19/24 | 1 | 24 |
+| ours | SuperGPQA | 21/25 | 0 | 25 |
+| ours | AIME 2025 | 11/25 | 2 | 25 |
+| ours | COMPSEC | 17/17 | 0 | 17 |
+| ours | GPQA Diamond (modified) | 1/1 | 0 | 1 |
+| ours | **core total** | **69/92** | **3** | **92** |
+| theirs | (whole deck) | **no report** | — | — |
+
+- **Ours is a floor, not a point estimate.** 16 of the 92 cases generated hundreds-to-thousands of
+  reasoning tokens and then emitted no `Answer:` line — the same channel artifact the Olympiad 0/10
+  showed — and 3 more stopped at the 16 k output cap with no answer line. None of those 16 can be
+  rescued into the numerator, so 75.0 % is what this box graded, not a point estimate of core
+  competence. AIME 2025 (11/25) is the weak half; COMPSEC (17/17) and the modified-GPQA case were
+  clean.
+- **Theirs is no report, not a zero.** The run started 13:00Z, went 6 h 57 m, and was force-killed
+  at 19:58Z (rc=1) after going engine-silent (a healthy run streams every decode step). The queue's
+  6 h watchdog did not stop it: it TERM'd the `npm exec` wrapper rather than the `node` child, and
+  its log line went to `/dev/null` under nohup. There is no score and no per-source count to publish,
+  and I will not invent one. The watchdog is now fixed (it logs to the queue log and TERM-then-KILLs
+  the `node`), so the re-run — `JOBS="theirs:core" scripts/13-eval-queue.sh` — is bounded.
+- **core is not comparable to hard or code** (llmprobe's rule), and until both sides land this deck
+  carries one side only: ours, 69/92, a floor.
+
 ## The Olympiad slice, at `--reasoning-budget 4096` (2026-10-26)
 
 Different arms, so its own table: `--eval-suite hard --eval-cases olympiad` (10 questions), served by

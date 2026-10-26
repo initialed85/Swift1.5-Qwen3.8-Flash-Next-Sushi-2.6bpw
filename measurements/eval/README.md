@@ -21,7 +21,7 @@ aggregate rows checkable without shipping the corpora.
 ## Arms (so a re-run is a like-for-like re-run)
 
 All rows: llmprobe **0.6.12**, greedy `t=0`, `--eval-max-tokens 16000`, `--concurrency 2`,
-effort `medium` on code / `xhigh` on hard, server flags
+effort `medium` on code / `xhigh` on hard and core, server flags
 `--kv-quant 8 --mtp --mtp-min-depth 1 --mtp-max-depth 2 --mtp-typical 0.1 --prefix-cache-entries 4
 --prefix-cache-mem 8GB --prefix-cache-disk 0 --max-concurrent 4 --ctx-size 131072
 --prefill-chunk 8192 --qwen-gdn 16 --expert-pick-tolerance 0.3 --metrics`.
@@ -46,6 +46,8 @@ scripts/12-eval-table.py measurements/eval --csv measurements/eval/table.csv
 | theirs | hard | 36/50 | xhigh | `a61badf3c71a82f8…` | 13/50 cases reasoned with no `Answer:` line |
 | ours | hard-olympiad (10 q slice) | 1/10 | xhigh | `bb9b6633529c15c5…` | arms add `--reasoning-budget 4096`; 5/10 no final text |
 | theirs | hard-olympiad (10 q slice) | 2/10 | xhigh | `bbc39a3bd0caa8a6…` | same budgeted arms; 6/10 no final text |
+| ours | core | 69/92 | xhigh | `eb8fe08474f66c0c…` | dedicated box; 16/92 cases reasoned with no `Answer:` line, 3 hit the 16 k output cap. A floor, not a point estimate. |
+| theirs | core | **no report** | xhigh | — | ran 6 h 57 m; the 6 h watchdog failed to stop it (it TERM'd the `npm exec` wrapper, not the `node` child, and its log line went to `/dev/null`). Force-killed 19:58Z, rc=1. No score, no partial count. Not a measurement. |
 | ours | code (invalid) | 0/100 | — | `29d51cd8773abd5c…` | 100/100 cases generated **0 tokens** in 3.1 s: the server answered while no pack was resident. Not a measurement. |
 | ours | code (superseded) | 82/100 | medium | `46d3edb7eba29f26…` | concurrency 4 while the engine was shared with this agent's inference; cost columns congested, score credible |
 
@@ -56,16 +58,22 @@ The two older manifests (`invalid/`, `superseded/`) were written before the vali
 rewritten, so they carry no `cases_without_final_text` / `cases_without_generation` fields —
 `invalid/README.md` states that run's counts directly (100/100 cases at zero generated tokens).
 
-## Not run yet (open, deliberate — a reminder, not a failure)
+## Core (run 2026-10-26/27) — ours landed, theirs did not
 
-`--eval-suite core` (92: GPQA Diamond + SuperGPQA + AIME 2025 + COMPSEC) has never been run on this
-box, for either pack. It was skipped on cost (~3–5 h/pack at these arms), not attempted and dropped:
+`--eval-suite core` (92: GPQA Diamond + SuperGPQA + AIME 2025 + COMPSEC) was run at the arms above
+(xhigh, no budget) on 2026-10-26/27. **Ours landed** 69/92 (75.0 %, valid): 16 cases reasoned to
+completion but emitted no `Answer:` line and 3 more hit the 16 k output cap, so it is a floor, not a
+point estimate. **Theirs never produced a report**: the run started 13:00Z, went 6 h 57 m, and was
+force-killed at 19:58Z (rc=1) because it had gone engine-silent (a healthy run streams every decode
+step). The queue's 6 h watchdog did not stop it — it TERM'd the `npm exec` wrapper rather than the
+`node` child, and its log line went to `/dev/null` under nohup. There is no `theirs:core` number and
+no partial count to publish. The watchdog is now fixed (it logs to the queue log and does
+TERM-then-KILL on the `node`), so the missing leg is bounded:
 
 ```bash
-JOBS="ours:core,theirs:core" scripts/13-eval-queue.sh      # ~6–10 h; queue budgets 360 min per job
+JOBS="theirs:core" scripts/13-eval-queue.sh      # ~3–5 h; queue budgets 360 min per job, now enforced
 ```
 
-Nothing on this card depends on it. If it runs, the two rows land in the table above with `serving =
-no budget` and effort `xhigh`, and `scripts/12-eval-table.py measurements/eval` folds them in
-automatically — a `core` row is a different deck and must never be read against the `hard` or `code`
-rows (llmprobe's rule).
+A `core` row is a different deck and must never be read against the `hard` or `code` rows (llmprobe's
+rule). When `theirs:core` lands it will fold into the table above with `serving = no budget` and
+effort `xhigh`.

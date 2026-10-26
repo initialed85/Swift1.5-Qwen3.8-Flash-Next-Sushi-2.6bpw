@@ -199,12 +199,22 @@ for job in "${JOBS_ARR[@]}"; do
   log "job $i: running suite=$suite model=$id"
   case "$suite" in code) budget=90;; core) budget=360;; *) budget=300;; esac
   [ -n "$JOB_TIMEOUT_MIN" ] && budget="$JOB_TIMEOUT_MIN"
-  wpid=""
+  # Watchdog: fires after `budget` minutes if the run is still alive. The shared substring
+  # "${BASE} -m ${id}" matches BOTH the `npm exec llmprobe@…` wrapper and the real `node` child,
+  # so TERM+KILL reach the process that actually writes the report (a wrapper-only SIGTERM let a
+  # wedged node child outlive the deadline — that is how theirs:core ran 6 h 57 m unmanaged). The
+  # echo goes to $LOG (the queue's own stdout may be /dev/null under nohup, so >&2 is invisible).
   ( sleep $((budget*60)); \
-    pids="$(pgrep -f "llmprobe@${LLP} ${BASE} -m ${id}" | tr '\n' ' ')"
+    pids="$(pgrep -f "${BASE} -m ${id}" | tr '\n' ' ')"
     if [ -n "$pids" ]; then
-      echo "[watchdog] job exceeded ${budget} min; SIGTERM: $pids" >&2
+      echo "[watchdog] job exceeded ${budget} min; SIGTERM: $pids" >>"$LOG"
       kill -TERM $pids 2>/dev/null || true
+      sleep 20
+      pids2="$(pgrep -f "${BASE} -m ${id}" | tr '\n' ' ')"
+      if [ -n "$pids2" ]; then
+        echo "[watchdog] still alive after SIGTERM; SIGKILL: $pids2" >>"$LOG"
+        kill -KILL $pids2 2>/dev/null || true
+      fi
     fi ) &
   wpid=$!
   SUITE="$suite" CASES="$cases" CONCURRENCY="$CONCURRENCY" MAX_TOKENS="$MAX_TOKENS" LLP="$LLP" FORCE=1 \
