@@ -404,13 +404,14 @@ grades deterministically — execution for code, `Answer:`-line matching for the
 |---|---|---|
 | `--eval-suite code` | 100 JavaScript functions: 50 HumanEval + 50 MBPP (MultiPL-E ports) | **executes** the model's function against the ported asserts (`node:vm`, 3 s cap) |
 | `--eval-suite hard` | 50 questions: 30 MMLU-Pro, 10 OlympiadBench, 5 LiveBench (zebra), 5 NIST Juliet reductions | normalised `Answer:` line vs the published answer and its listed equivalent forms |
-| `--eval-suite core` | 92: GPQA Diamond, SuperGPQA, AIME 2025, COMPSEC | as above; **run on this box** — ours landed 69/92 (75.0 %, a floor), theirs produced no report (see the core row below). **Suites are not comparable to each other** (llmprobe's rule, quoted in its README) |
+| `--eval-suite core` | 92: GPQA Diamond, SuperGPQA, AIME 2025, COMPSEC | as above; **run on this box** — ours 69/92 (75.0 %), theirs 65/92 (70.4 %), both floors (see the core row below). **Suites are not comparable to each other** (llmprobe's rule, quoted in its README) |
 
 The `hard` deck is the same test behind beamster's card line *"LLMProbe Hard 50 — 88.0 %"*, which
 matters because it is the only claim of that kind we could check against someone else's pack —
 and it is **not reproduced here** (their pack, our server, arms below: 72.0 %). The source model's
-`medium` 0.2078 / `xhigh` 0.2980 GPQA-Diamond figures are reachable with `--eval-suite core` — but
-**that suite was not run here**, so those figures are quoted from the source card, not checked.
+`medium` 0.2078 / `xhigh` 0.2980 GPQA-Diamond figures sit behind the full 198-question GPQA set;
+`--eval-suite core` does include a 24-question GPQA slice, measured here (see the core row below)
+but it is not the same set, so those figures remain quoted from the source card, not checked.
 
 Arms, pinned, identical for both packs — only `--model` moves:
 
@@ -432,8 +433,8 @@ weights-only quality number and **not** a teacher KLD.
 Every row in this card is greedy t=0, effort medium on code / xhigh on hard and core, `--concurrency 2`,
 16 k output cap, and the same server flags (`--kv-quant 8 --mtp --qwen-gdn 16 --expert-pick-tolerance 0.3 ...`)
 **only `--model` changes between rows**, so a pair of rows in the same deck is a like-for-like
-comparison. The code and hard decks both landed for both packs, so they have real like-for-like pairs;
-the core row is ours-only for now (see the core section below). Full arms and cost per row are in the
+comparison. All three decks — code, hard and core — landed for both packs, so each row here and in
+the core section below is a real like-for-like pair. Full arms and cost per row are in the
 `*-manifest.json` files next to each report (render them with `scripts/12-eval-table.py measurements/eval`).
 
 | pack | code (100) | HumanEval / MBPP | hard (50) | MMLU-Pro / Olympiad / LiveBench / Juliet | wall |
@@ -469,44 +470,55 @@ What that says, in the plainest terms I can defend:
 - Run-to-run spread: the same pack, deck and arms scored 82/100 and 81/100 (pilot vs clean), so
   **±1/100 is noise, not a finding**. The 5-question code gap is 5× that band, so it is a real gap.
 
-### The core row — measured, ours only for now
+### The core row — both packs, both landed
 
-`--eval-suite core` (92: GPQA Diamond, SuperGPQA, AIME 2025, COMPSEC) was run on this box on
-2026-10-26/27 at the arms above (xhigh, concurrency 2, 16 k cap, same server flags). Ours finished;
-theirs did not:
+`--eval-suite core` (92: GPQA Diamond, SuperGPQA, AIME 2025, COMPSEC) ran on this box on
+2026-10-26/27 at the arms above (xhigh, concurrency 2, 16 k cap, same server flags). Both packs
+finished:
 
-| pack | core (92) | AIME 2025 / GPQA Diamond / SuperGPQA / COMPSEC | no-Answer-line | cap-stopped | wall |
+| pack | core (92) | AIME 2025 / GPQA Diamond / SuperGPQA / COMPSEC | no answer line \* | cap-stopped | wall |
 |---|---|---|---|---|---|
-| **ours** (`initialed85/…-Sushi-2.6bpw`) | **69/92 (75.0 %)** | 11/25 · 19/24 · 21/25 · 17/17 | 16 | 3 | 3 h 30 min |
-| **theirs** (`beamster/Qwen3.8-Flash-Next-…`) | **no report** | — | — | — | killed at 6 h 57 m |
+| **ours** (`initialed85/…-Sushi-2.6bpw`) | **69/92 (75.0 %)** | 11/25 · 19/24 · 21/25 · 17/17 | 18 | 3 | 3 h 30 min |
+| **theirs** (`beamster/Qwen3.8-Flash-Next-…`) | **65/92 (70.4 %)** | 14/25 · 15/24 · 20/25 · 15/17 | 23 | 9 | 6 h 49 min |
 
-- **Ours: 69/92 (75.0 %), valid, and a floor.** 16 questions generated real thinking (hundreds-to-
-  thousands of tokens) and then emitted no `Answer:` line — the same answer-emission failure mode
-  the Olympiad 0/10 showed — and 3 more stopped at the 16 k output cap with no answer line. So
-  **75.0 % is what this box graded, not a point estimate of deck competence**: none of those 16 can
-  be rescued into the numerator, and some may be wrong in substance, not just in form. COMPSEC (17/17)
-  and GPQA-Diamond (modified) (1/1) were clean; AIME 2025 (11/25) is the weak half.
-- **Theirs: no report — not a number, and not comparable.** The run started 13:00Z and was still
-  going 6 h 57 m later. By a 19:34Z check the server log had ~22 min of no new output (last decode
-  activity ~19:11Z); a healthy run streams the mtp-planner every step, so that is a stall, not merely
-  slowness. I killed it at 19:58Z (rc=1). The queue's own 6 h watchdog (which was due to fire at
-  19:00Z) never did: it `SIGTERM`ed the `npm exec` wrapper (its pattern `llmprobe@0.6.12 …`), not the
-  real `node` child that writes the report, and its log line went to `/dev/null` because the queue's
-  stdout is `/dev/null` under nohup. There is no score and no partial count, and I will not invent one.
-  This is either a genuine stall on these decks at xhigh or an unusually slow run; the silence looks
-  like a stall, but the deck is long enough that I cannot rule out the other. The watchdog is now
-  fixed (it logs to the queue log and does TERM-then-KILL on the `node`), so a re-run is bounded:
+\* “no answer line” = finished with no extractable `Answer:` line. Ours: 16 with an empty content
+channel plus 2 AIME cases with partial text but no line; theirs: 23, all empty-channel. These are
+format/cap failures — “unresolved, not disproven” — and the reason both scores are floors, not point
+estimates (same answer-emission mode as the Olympiad 0/10).
 
-  ```bash
-  JOBS="theirs:core" scripts/13-eval-queue.sh     # ~3–5 h, restarts the server per job
-  ```
+- **A real pair at last: ours 69, theirs 65.** Directionally ours, but small against the
+  run-to-run band (±1–2; hard was 36 vs 36). The halves lean opposite ways: AIME 11 vs 14 (theirs,
+  despite ~1.5× the thinking per question), GPQA Diamond 19 vs 15 (ours, by 4), SuperGPQA 21 vs
+  20, COMPSEC 17/17 vs 15/17, GPQA-Diamond (modified) ticks 1/1.
+- **They paid for stronger thinking.** 4 909 output tokens per question (ours 3 189 here), 6 h 49 m
+  on the wall (ours 3 h 30 min), 9 cap-stops (ours 3). The extra thinking bought +3 on AIME and
+  cost −4 on GPQA Diamond; its 23 no-line cases are the same answer-emission failure mode the
+  Olympiad 0/10 showed — both packs’ true competence sits above the measured number, and the
+  unresolved mass (18–23 questions) is several times the 4-point gap.
+- **What nearly killed the metric (and the fix).** The first attempt (2026-10-26 13:00Z) was
+  force-killed at 19:58Z, no report, under the old 6 h watchdog budget. At a 19:34Z check the server
+  log showed ~22 min of no fresh output (the completion counter was flat), which read as a stall, so
+  I killed it. Then this morning, **the identical job’s re-run completed in 6 h 49 m of eval time**
+  — ~9 min less than the killed attempt had already consumed (warmup included). So the “kill call”
+  was almost certainly tail-cutting, not a hang: the final cap-questions each decode ~13–15 min at
+  this box’s xhigh, and the completion counter does not move at all while they run. And the deeper
+  truth:
+  - **The core default watchdog budget was 360 min; the job needs ~409 min.** A perfectly working
+    watchdog would *also* have killed the healthy run at 6 h 00 m — 49 min early.
+  - The old kill path `SIGTERM`ed the `npm exec` wrapper (a no-op), and its log line went to
+    `/dev/null` under nohup.
+  - Fixed in `scripts/13-eval-queue.sh`: the core default budget is 720 min (≥2× observed; override
+    with `JOB_TIMEOUT_MIN`), TERM→KILL lands on the real `node`, and the watchdog output goes to
+    the queue log. In parallel, `scripts/14-metrics-log.sh` ran through this attempt: the raw
+    `/metrics` stream (15 s cadence, saved to `logs/metrics-raw-<tag>.log`) is on disk, and
+    `scripts/15-metrics-parse.py` reduces it. Report progress only when
+    `sushi:generation_tokens_live` (tok/s) moves — a flat completion counter is normal while one
+    capped question still decodes (13–15 min at a time).
 
-  The queue skips `ours:core` (its report is already on disk) and restores production on our pack at
-  the end.
-
-Until a comparable `theirs:core` lands, read the card's `core` claims as ours-only: **69/92 (75.0 %, a
-floor)**. The source model's 0.2078 / 0.2980 GPQA-Diamond figures remain quoted from the source card,
-not checked, and beamster's card is not a source for `core` on our box either.
+The card’s deck set is now complete: **code 81 vs 86 (−5), hard 36 vs 36 (tie), core 69 vs 65
+(+4)**. The source model’s 0.2078 / 0.2980 GPQA-Diamond figures remain **quoted from the source
+card, not checked** (different question set) — and beamster’s card is not a source for `core` on
+our box either.
 
 ### Two things the harness had wrong, and what fixing them changed
 

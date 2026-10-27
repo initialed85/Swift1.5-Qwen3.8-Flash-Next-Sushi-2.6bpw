@@ -5,6 +5,7 @@ Tool: llmprobe (Apache-2.0, `ddalcu/llmprobe`), version 0.6.12. Graded at temper
 | model | suite | passed | score | out of tokens | errors | effort | cap | conc | sampling | serving | output tok | reasoning tok/q | wall |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | beamster/Qwen3.8-Flash-Next-Sushi-2.6bpw | code | 86/100 | **86.0 %** | 0 | 0 | medium | 16000 | 2 | greedy t=0 (llmprobe default) | no budget | 165338 | 1544.3 | 6018.6 s |
+| beamster/Qwen3.8-Flash-Next-Sushi-2.6bpw | core | 65/92 | **70.7 %** | 9 | 0 | xhigh | 16000 | 2 | greedy t=0 (llmprobe default) | no budget | 451683 | 4755.7 | 24527.7 s |
 | beamster/Qwen3.8-Flash-Next-Sushi-2.6bpw | hard | 36/50 | **72.0 %** | 1 | 0 | xhigh | 16000 | 2 | greedy t=0 (llmprobe default) | no budget | 189870 | 3720.8 | 7792.0 s |
 | beamster/Qwen3.8-Flash-Next-Sushi-2.6bpw | hard-olympiad (SUB-DECK slice, 10 q) | 2/10 | **20.0 %** | 0 | 0 | xhigh | 16000 | 2 | greedy t=0 (llmprobe default) | budget 4096 | 33000 | 2947.0 | 1151.6 s |
 | initialed85/Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw | code | 81/100 | **81.0 %** | 0 | 0 | medium | 16000 | 2 | greedy t=0 (llmprobe default) | no budget | 66332 | 565.0 | 2088.9 s |
@@ -17,6 +18,7 @@ Tool: llmprobe (Apache-2.0, `ddalcu/llmprobe`), version 0.6.12. Graded at temper
 | model | suite | AIME2025 | COMPSEC | GPQA Diamond | GPQA Diamond (modified) | HumanEval | LiveBench | MBPP | MMLU-Pro | NIST Juliet | OlympiadBench | SuperGPQA |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
 | beamster/Qwen3.8-Flash-Next-Sushi-2.6bpw | code | - | - | - | - | 49/50 | - | 37/50 | - | - | - | - |
+| beamster/Qwen3.8-Flash-Next-Sushi-2.6bpw | core | 14/25 | 15/17 | 15/24 | 1/1 | - | - | - | - | - | - | 20/25 |
 | beamster/Qwen3.8-Flash-Next-Sushi-2.6bpw | hard | - | - | - | - | - | 4/5 | - | 27/30 | 5/5 | 0/10 | - |
 | beamster/Qwen3.8-Flash-Next-Sushi-2.6bpw | hard-olympiad (SUB-DECK slice, 10 q) | - | - | - | - | - | - | - | - | - | 2/10 | - |
 | initialed85/Swift1.5-Qwen3.8-Flash-Next-Sushi-2.6bpw | code | - | - | - | - | 48/50 | - | 33/50 | - | - | - | - |

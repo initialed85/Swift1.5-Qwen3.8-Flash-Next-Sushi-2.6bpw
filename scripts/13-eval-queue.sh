@@ -197,7 +197,10 @@ for job in "${JOBS_ARR[@]}"; do
   log "job $i of ${#JOBS_ARR[@]}: $tag"
   serve "$dir" "$id" "${RUNNER:-$HOME/run-sushi.sh}"
   log "job $i: running suite=$suite model=$id"
-  case "$suite" in code) budget=90;; core) budget=360;; *) budget=300;; esac
+  # per-suite budget (min). core at xhigh takes ~409 min on this box (measured 6 h 49 m), so the
+  # default is 720: the old 360 killed a healthy theirs:core run ~9 min past where the re-run
+  # completed (360 < true runtime). Override with JOB_TIMEOUT_MIN.
+  case "$suite" in code) budget=90;; core) budget=720;; *) budget=300;; esac
   [ -n "$JOB_TIMEOUT_MIN" ] && budget="$JOB_TIMEOUT_MIN"
   # Watchdog: fires after `budget` minutes if the run is still alive. The shared substring
   # "${BASE} -m ${id}" matches BOTH the `npm exec llmprobe@…` wrapper and the real `node` child,

@@ -633,26 +633,89 @@
     "valid": true,
     "cases_without_final_text": 16,
     "cases_without_generation": 0,
-    "status": "clean. A floor, not a point estimate: 16 questions generated hundreds-to-thousands of thinking tokens but emitted no Answer: line (same answer-emission mode as the Olympiad 0/10), 3 more stopped at the 16 k output cap with no answer line. 69/92 (75.0 %) is what this box graded."
+    "status": "clean. A floor, not a point estimate: 18 questions ended without an extractable Answer: line (16 with an empty content channel + 2 AIME cases with partial text but no line; 3 of the 16 stopped at the 16 k output cap) - the same answer-emission mode as the Olympiad 0/10. 69/92 (75.0 %) is what this box graded."
    },
    "theirs:core": {
     "model": "beamster/Qwen3.8-Flash-Next-Sushi-2.6bpw",
     "suite": "core",
-    "status": "no_report",
-    "reason": "the run never produced a report. Started 20261026T130052Z, ran 6 h 57 m, was engine-silent for ~20 min with no completion progress by 19:00Z, and was force-killed at 19:58Z (rc=1). The queue's 6 h watchdog failed to stop it: it TERM'd the npm exec wrapper (pattern llmprobe@0.6.12 ...), not the real node child, and its log line went to /dev/null under nohup. No cases finished, no score. Not a measurement; not comparable to the ours:core row. Re-run: JOBS=\"theirs:core\" scripts/13-eval-queue.sh (skips ours:core, which has a report; watchdog now logs to the queue log and TERM+KILLs the node).",
     "arms": {
      "sampling": "greedy t=0 (llmprobe default)",
      "reasoning_effort": "xhigh",
      "concurrency": 2,
      "max_output_tokens_per_question": 16000,
-     "server": "--kv-quant 8 --mtp --ctx-size 131072 --qwen-gdn 16 --expert-pick-tolerance 0.3 (otherwise identical to ours:core)"
+     "server_flags": "./sushi serve --mtp --mtp-min-depth 1 --mtp-max-depth 2 --mtp-typical 0.1 --host 0.0.0.0 --port 8088 --prefix-cache-entries 4 --prefix-cache-mem 8GB --prefix-cache-disk 0 --max-concurrent 4 --kv-quant 8 --temp 1.0 --top-p 0.95 --top-k 20 --ctx-size 131072 --prefill-chunk 8192 --qwen-gdn 16 --expert-pick-tolerance 0.3 --metrics --model /Users/edwardbeech/.sushi/models/beamster/Qwen3.8-Flash-Next-Sushi-2.6bpw/"
     },
-    "started_utc": "20261026T130052Z",
-    "killed_utc": "20261026T195831Z",
-    "report": null
+    "score": {
+     "passed": 65,
+     "total": 92,
+     "stopped_token_cap": 9,
+     "errors": 0,
+     "by_source": [
+      {
+       "source": "GPQA Diamond",
+       "passed": 15,
+       "failed": 5,
+       "stopped": 4,
+       "error": 0,
+       "total": 24
+      },
+      {
+       "source": "SuperGPQA",
+       "passed": 20,
+       "failed": 4,
+       "stopped": 1,
+       "error": 0,
+       "total": 25
+      },
+      {
+       "source": "AIME2025",
+       "passed": 14,
+       "failed": 9,
+       "stopped": 2,
+       "error": 0,
+       "total": 25
+      },
+      {
+       "source": "COMPSEC",
+       "passed": 15,
+       "failed": 0,
+       "stopped": 2,
+       "error": 0,
+       "total": 17
+      },
+      {
+       "source": "GPQA Diamond (modified)",
+       "passed": 1,
+       "failed": 0,
+       "stopped": 0,
+       "error": 0,
+       "total": 1
+      }
+     ]
+    },
+    "cost": {
+     "duration_s": 24527.7,
+     "output_tokens": 451683,
+     "input_tokens": 30772,
+     "mean_output_tokens_per_question": 4909.6,
+     "mean_reasoning_tokens_per_question": 4755.7
+    },
+    "report": "measurements/eval/beamster_Qwen3.8-Flash-Next-Sushi-2.6bpw__core-20261026T234842Z",
+    "report_sha256": "988b96eed49064b5fa1260a95917c28284583b60bf556bf2b85232de29c9b169",
+    "measured_utc": "20261026T234842Z",
+    "valid": true,
+    "cases_without_final_text": 23,
+    "cases_without_generation": 0,
+    "prior_attempt": {
+     "started_utc": "20261026T130052Z",
+     "killed_utc": "20261026T195831Z",
+     "result": "no report (llmprobe writes the report at the end only)",
+     "note": "force-killed at ~6 h 58 m under the old 6 h watchdog budget, whose kill path was broken (TERM reached the `npm exec` wrapper, not the node child; the log line went to /dev/null). The re-run of the identical job completed in 6 h 49 m of eval time, so the killed attempt had already run ~9 min LONGER (warmup included) than it took to finish - a premature kill of a run in its final tail (two 16 k cap questions decode ~13-15 min each at this box's xhigh), not a stall. Whether it was seconds or minutes from finishing is no longer reconstructable: no partial report was written. Certain either way: the 360 min default budget was ~49 min below the true runtime, so a correct watchdog would ALSO have killed this healthy run at 6 h 00 m."
+    },
+    "status": "clean. A floor, like ours: 23/92 ended without an extractable Answer: line (23 with empty content channel; 9 of them at the 16 k cap) - the same answer-emission mode as the Olympiad 0/10, unresolved not disproven. They think much more per question (4 909 output tokens vs 3 189 for ours, ~1.5x), take 6 h 49 m vs 3 h 30 m on the wall and hit the output cap 3x more (9 vs 3). AIME improved with the thinking (14/25 vs 11/25); GPQA Diamond cost (15/24 vs 19/24): SuperGPQA 20/25, COMPSEC 15/17. 65/92 (70.4 %) is what this box graded."
    }
   },
-  "comparability_note": "all deck rows share arm discipline - effort (medium code / xhigh hard+core), cap 16000, concurrency 2, greedy t=0 and the same server flags; only --model changes between a compared pair. Scores are latency-independent, so the shared-engine pilot's 82/100 and the clean 81/100 differ by 1/100 = the run-to-run band, not a finding. The Olympiad 0/10 on BOTH packs means that sub-deck carries no discriminating signal at these arms: both packs reason for 1.5k-16k tokens and emit no Answer: line. beamster's card claims LLMProbe Hard 50 = 88.0 %; we measure 36/50 with their pack on our server, so their claim is not reproduced under these arms (their serving flags/effort are not ours). core has exactly ONE landed row (ours, 69/92, a floor); theirs:core is no_report, so there is no core pair to compare yet.",
+  "comparability_note": "all deck rows share arm discipline - effort (medium code / xhigh hard+core), cap 16000, concurrency 2, greedy t=0 and the same server flags; only --model changes between a compared pair. Scores are latency-independent, so the shared-engine pilot's 82/100 and the clean 81/100 differ by 1/100 = the run-to-run band, not a finding. The Olympiad 0/10 on BOTH packs means that sub-deck carries no discriminating signal at these arms: both packs reason for 1.5k-16k tokens and emit no Answer: line. beamster's card claims LLMProbe Hard 50 = 88.0 %; we measure 36/50 with their pack on our server, so their claim is not reproduced under these arms (their serving flags/effort are not ours). The core pair landed 2026-10-26/27: ours 69/92 (75.0 %) vs theirs 65/92 (70.4 %) - a real pair, ours +4, within the run-to-run band but directionally consistent with hard (36/36) and offset by code (81 vs 86). Both core scores are floors (18/23 questions unresolved, no answer line); the first theirs:core attempt was force-killed ~9 min past the re-run's completion time by a 360-min watchdog budget that was ~49 min short of the true runtime - budget bug, not a model stall (see prior_attempt).",
   "slice_rows_olympiad_budget4096": {
    "ours": {
     "passed": 1,
@@ -702,6 +765,6 @@
    },
    "finding": "Olympiad at PRODUCTION arms is 0/10 for BOTH packs because neither emits an Answer: line (proof-mode writes the proof into the content channel and stops). At arms --reasoning-budget 4096 (via ~/run-sushi-budget.sh, EXTRA_FLAGS) the thinking is clamped to 4119 tokens on the cases that hit it (5/10 ours, 4/10 theirs) and exactly those cases emit graded content: ours 1/10 (11 vs 2; 3976036 vs 3986729; 25/2 PASS; 1002 vs 1003), theirs 2/10 (4041417 vs 3986729; 25/2 PASS; 1003 PASS). Cases whose thinking finished under the budget stay proof-mode with empty content. CONCLUSION: the 0/10 was a format/channel artifact, but forcing the answer does NOT reveal hidden competence - at 2.6bpw+kv8 Olympiad is genuinely ~1-2/10, and 1 vs 2 at n=10 is noise. Report Olympiad as non-discriminating, never as a capability score."
   },
-  "suites_status": "core (92: GPQA Diamond + SuperGPQA + AIME 2025 + COMPSEC) was run on this box 2026-10-26/27: ours:core = 69/92 (75.0 %, valid, a floor - 16 questions generated but emitted no Answer: line, 3 more hit the 16 k output cap); theirs:core = NO REPORT (ran 6 h 57 m, engine-silent ~20 min by 19:00Z, force-killed at 19:58Z; the queue's 6 h watchdog failed to stop it and its log line went to /dev/null). No GPQA/SuperGPQA/AIME/COMPSEC number for theirs exists yet. Re-run: JOBS='theirs:core' scripts/13-eval-queue.sh (skips ours:core, which already has a report)."
+  "suites_status": "core (92: GPQA Diamond + SuperGPQA + AIME 2025 + COMPSEC) ran on both packs, 2026-10-26/27: ours:core = 69/92 (75.0 %), theirs:core = 65/92 (70.4 %), both valid, both floors (18/23 questions with no extractable Answer: line; 3/9 at the 16 k cap). The first theirs:core attempt (13:00Z) was force-killed at 19:58Z under the old 6 h watchdog budget; the identical re-run completed in 6 h 49 m, so that kill was premature - the 360-min default was ~49 min below the true runtime (budget bug, not a model stall; 360->720 default now fixed in the queue script). Nothing left to run in the decks."
  }
 }

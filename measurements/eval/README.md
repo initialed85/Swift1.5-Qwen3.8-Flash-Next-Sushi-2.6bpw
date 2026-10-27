@@ -47,7 +47,7 @@ scripts/12-eval-table.py measurements/eval --csv measurements/eval/table.csv
 | ours | hard-olympiad (10 q slice) | 1/10 | xhigh | `bb9b6633529c15c5…` | arms add `--reasoning-budget 4096`; 5/10 no final text |
 | theirs | hard-olympiad (10 q slice) | 2/10 | xhigh | `bbc39a3bd0caa8a6…` | same budgeted arms; 6/10 no final text |
 | ours | core | 69/92 | xhigh | `eb8fe08474f66c0c…` | dedicated box; 16/92 cases reasoned with no `Answer:` line, 3 hit the 16 k output cap. A floor, not a point estimate. |
-| theirs | core | **no report** | xhigh | — | ran 6 h 57 m; the 6 h watchdog failed to stop it (it TERM'd the `npm exec` wrapper, not the `node` child, and its log line went to `/dev/null`). Force-killed 19:58Z, rc=1. No score, no partial count. Not a measurement. |
+| theirs | core | 65/92 | xhigh | `988b96ee…` | real pair vs ours (69/92), ours +4. 23/92 no `Answer:` line (9 hit the 16 k cap). First 13:00Z attempt force-killed at ~6 h 58 m — budget bug, not a stall (see core section). |
 | ours | code (invalid) | 0/100 | — | `29d51cd8773abd5c…` | 100/100 cases generated **0 tokens** in 3.1 s: the server answered while no pack was resident. Not a measurement. |
 | ours | code (superseded) | 82/100 | medium | `46d3edb7eba29f26…` | concurrency 4 while the engine was shared with this agent's inference; cost columns congested, score credible |
 
@@ -82,22 +82,34 @@ signal, and it moves slowly by design — at xhigh with a 16 k cap one question 
 so a flat completion count for a few minutes is not a stall. A real stall is `live` frozen while
 requests are running (that is how `theirs:core` died on 2026-10-26: ~20 min with no decode).
 
-## Core (run 2026-10-26/27) — ours landed, theirs did not
+## Core (run 2026-10-26/27) — both packs landed
 
-`--eval-suite core` (92: GPQA Diamond + SuperGPQA + AIME 2025 + COMPSEC) was run at the arms above
-(xhigh, no budget) on 2026-10-26/27. **Ours landed** 69/92 (75.0 %, valid): 16 cases reasoned to
-completion but emitted no `Answer:` line and 3 more hit the 16 k output cap, so it is a floor, not a
-point estimate. **Theirs never produced a report**: the run started 13:00Z, went 6 h 57 m, and was
-force-killed at 19:58Z (rc=1) because it had gone engine-silent (a healthy run streams every decode
-step). The queue's 6 h watchdog did not stop it — it TERM'd the `npm exec` wrapper rather than the
-`node` child, and its log line went to `/dev/null` under nohup. There is no `theirs:core` number and
-no partial count to publish. The watchdog is now fixed (it logs to the queue log and does
-TERM-then-KILL on the `node`), so the missing leg is bounded:
+`--eval-suite core` (92: GPQA Diamond + SuperGPQA + AIME 2025 + COMPSEC) ran on both packs at the
+arms above (xhigh, no budget) on 2026-10-26/27:
 
-```bash
-JOBS="theirs:core" scripts/13-eval-queue.sh      # ~3–5 h; queue budgets 360 min per job, now enforced
-```
+| pack | score | AIME / GPQA / SuperGPQA / COMPSEC | no `Answer:` line | cap-stopped | wall |
+|---|---|---|---|---|---|
+| `initialed85/…-Sushi-2.6bpw` | **69/92 (75.0 %)** | 11/25 · 19/24 · 21/25 · 17/17 | 18 | 3 | 3 h 30 m |
+| `beamster/…-Sushi-2.6bpw` | **65/92 (70.4 %)** | 14/25 · 15/24 · 20/25 · 15/17 | 23 | 9 | 6 h 49 m |
+
+Both valid, 0 errors. Both floors: 18 / 23 questions ended without an extractable `Answer:` line
+(the same answer-emission mode as the Olympiad 0/10), 3 / 9 of them stopped at the 16 k cap. That is
+“unresolved, not wrong” — both packs' true competence sits above the number.
+
+**Kill and re-run — why this section almost stayed red.** The first theirs attempt (2026-10-26
+13:00Z) was force-killed at 19:58Z with no report, which made it read “ours a number, theirs a red”.
+The truth is clumsier but cleaner: the identical re-run completed in **6 h 49 m of eval time**, and
+the killed attempt had already consumed ~6 h 58 m (warmup included). So the kill clipped the tail —
+the final two cap questions each decode ~13–15 min at this box's xhigh — rather than a hang. The real
+root cause was the watchdog budget: **core's default was 360 min against a ~409 min job; even a
+correct watchdog would have clipped a healthy run 49 min early.** On top of that, the old kill path
+SIGTERMed the `npm exec` wrapper (a no-op), and its log line went to `/dev/null` under nohup. Fixed
+in `13-eval-queue.sh`: the core default budget is now 720 min (`JOB_TIMEOUT_MIN` overrides),
+TERM→KILL hits the real `node`, and watchdog lines go to the queue log. `14-metrics-log.sh` captured
+the raw `/metrics` stream through the re-run (`logs/metrics-raw-<tag>.log`, 15 s cadence);
+`15-metrics-parse.py` reduces it. For monitoring: report progress on `sushi:generation_tokens_live`
+(tok/s) only — a flat vLLM completion counter is normal while one capped question still decodes
+(13–15 min at a time).
 
 A `core` row is a different deck and must never be read against the `hard` or `code` rows (llmprobe's
-rule). When `theirs:core` lands it will fold into the table above with `serving = no budget` and
-effort `xhigh`.
+rule).

@@ -41,12 +41,11 @@ kv8 on this box, **should this sub-deck have looked like this?**
 - Sum of "expected" rows: MMLU-Pro 28/30 vs 27/30, Juliet 5/5 vs 5/5, HumanEval 48/50 vs 49/50 —
   i.e. both packs are behaving like the same base model everywhere the measurement is able to see.
 
-## core suite (2026-10-26/27 — ours landed, theirs did not)
+## core suite (2026-10-26/27 — both packs landed; both are floors)
 
 Different deck, so its own table. Arms matched to the code/hard rows: greedy t=0, xhigh,
 `--concurrency 2`, 16 000 output cap, same server flags, only `--model` changes. Served by the
-production launcher (`~/run-sushi.sh`); the queue restarted the server per job. This is the one row
-where the per-source breakdown is ours-only:
+production launcher (`~/run-sushi.sh`); the queue restarted the server per job.
 
 | pack | sub-deck | passed | capped (finish=length) | total |
 |---|---|---|---|---|
@@ -56,22 +55,31 @@ where the per-source breakdown is ours-only:
 | ours | COMPSEC | 17/17 | 0 | 17 |
 | ours | GPQA Diamond (modified) | 1/1 | 0 | 1 |
 | ours | **core total** | **69/92** | **3** | **92** |
-| theirs | (whole deck) | **no report** | — | — |
+| theirs | GPQA Diamond | 15/24 | 4 | 24 |
+| theirs | SuperGPQA | 20/25 | 1 | 25 |
+| theirs | AIME 2025 | 14/25 | 2 | 25 |
+| theirs | COMPSEC | 15/17 | 2 | 17 |
+| theirs | GPQA Diamond (modified) | 1/1 | 0 | 1 |
+| theirs | **core total** | **65/92** | **9** | **92** |
 
-- **Ours is a floor, not a point estimate.** 16 of the 92 cases generated hundreds-to-thousands of
-  reasoning tokens and then emitted no `Answer:` line — the same channel artifact the Olympiad 0/10
-  showed — and 3 more stopped at the 16 k output cap with no answer line. None of those 16 can be
-  rescued into the numerator, so 75.0 % is what this box graded, not a point estimate of core
-  competence. AIME 2025 (11/25) is the weak half; COMPSEC (17/17) and the modified-GPQA case were
-  clean.
-- **Theirs is no report, not a zero.** The run started 13:00Z, went 6 h 57 m, and was force-killed
-  at 19:58Z (rc=1) after going engine-silent (a healthy run streams every decode step). The queue's
-  6 h watchdog did not stop it: it TERM'd the `npm exec` wrapper rather than the `node` child, and
-  its log line went to `/dev/null` under nohup. There is no score and no per-source count to publish,
-  and I will not invent one. The watchdog is now fixed (it logs to the queue log and TERM-then-KILLs
-  the `node`), so the re-run — `JOBS="theirs:core" scripts/13-eval-queue.sh` — is bounded.
-- **core is not comparable to hard or code** (llmprobe's rule), and until both sides land this deck
-  carries one side only: ours, 69/92, a floor.
+- **Both are floors, not point estimates.** 18 of our 92 / 23 of theirs ended without an
+  extractable `Answer:` line (ours: 16 empty-content + 2 AIME with partial text and no line;
+  theirs: all 23 empty) — the same channel artifact the Olympiad 0/10 showed — with 3 / 9 of them
+  stopped at the 16 k output cap. None can be rescued into the numerator, so 75.0 % / 70.4 % is
+  what this box graded. The halves lean opposite ways: AIME 11 vs 14 (theirs, who thinks ~1.5×
+  more per question), GPQA Diamond 19 vs 15 (ours, by 4), SuperGPQA 21 vs 20, COMPSEC 17/17 vs
+  15/17.
+- **The first theirs run is the caveat, recorded in full here.** It started 13:00Z and was
+  force-killed (rc=1) at 19:58Z — ~6 h 58 m elapsed — under the old 6 h watchdog budget, which
+  never actually fired (TERM reached the `npm exec` wrapper, not the `node` child; the log line
+  went to `/dev/null`). It left no report. The identical re-run completed in **6 h 49 m** of eval
+  time — i.e. the kill landed ~9 min past where a completed re-run finished (warmup included) — so
+  the kill was premature (tail-cutting; the final two cap cases each take 13–15 min to decode), not
+  a stall. The deeper bug: **the 360-min default was ~49 min short of the true runtime, so a
+  correctly-working watchdog would have killed this healthy run as well.** Fixed: budget now 720
+  min for core by default (`JOB_TIMEOUT_MIN` overrides) and the kill path targets the `node`. The
+  killed attempt's receipt stays at `logs/eval-queue-20261026T092941Z.log`.
+- **core is not comparable to hard or code** (llmprobe's rule).
 
 ## The Olympiad slice, at `--reasoning-budget 4096` (2026-10-26)
 
