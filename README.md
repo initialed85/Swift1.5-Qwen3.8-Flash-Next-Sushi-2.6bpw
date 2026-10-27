@@ -25,15 +25,69 @@ tags:
 # Swift 1.5 Qwen3.8-Flash-Next — Sushi pack (2.6bpw)
 
 Unofficial, community-built [sushi](https://github.com/beamivalice/sushi) pack of
-[ukisai/Swift1.5-Qwen3.8-Flash-Next](https://huggingface.co/ukisai/Swift1.5-Qwen3.8-Flash-Next),
-quantised to EXL3 **k = 2.625 bpw on the routed experts** — 180 B parameters in 79.26 GB, i.e.
-**≈3.52 bits/weight overall** (the 47.26 GB of safetensors hold the 128.9 B parameters outside the n-gram
-table at **2.94 bits/weight**, see the Parameter count section below) — on a single 64 GB Apple Silicon Mac.
+[ukisai/Swift1.5-Qwen3.8-Flash-Next](https://huggingface.co/ukisai/Swift1.5-Qwen3.8-Flash-Next):
+a **≈180 B MoE** quantised to EXL3 **2.625 bpw on the routed experts** — 79.26 GB on disk,
+loading and serving on a single 64 GB Apple Silicon Mac (measured here: **45.1 decode tok/s**,
+81.5 % MTP accept, native 262 k context). The Hub's "26 B params" badge is a miscounted tensor
+tally, not this model's size — [why](#parameter-count--the-hubs-26-b-params-is-not-a-parameter-count).
+**Not affiliated with UkisAI or with beamster** — a conversion under the
+[Swift Open License v1.0](LICENSE) and [Qwen Community License 1.0](LICENSE-QWEN); see
+[`NOTICE-CONVERSION.md`](NOTICE-CONVERSION.md).
 
-**Not affiliated with UkisAI or with beamster.** Weights are the property of their respective
-copyright holders (UkisAI, Qwen); this repository is a conversion under the terms of the
-[Swift Open License v1.0](LICENSE) and the [Qwen Community License 1.0](LICENSE-QWEN).
-Read [`NOTICE-CONVERSION.md`](NOTICE-CONVERSION.md) for the full attribution and change notice.
+**Shelf-life:** upstream sushi is reportedly preparing **STQ** quantisation (claimed: better than
+3 bpw quality at today's 2.6 bpw footprint). If it ships, this card becomes the historical
+2.6 bpw baseline — the numbers below stay valid as matched-arms measurements of *this* quant.
+
+## What this is
+
+| part | how it is stored |
+|---|---|
+| routed experts (48 layers × 512, plus the MTP head) | **EXL3, 2.625 bpw** (`--experts-k 2.625` = "2.6bpw"), codebook **`mcg`**, window **15**, `ldlq-rotated`, `svh` output scales |
+| dense part (attention, GatedDeltaNet, shared experts, hyper-connections, indexer, embedding, lm_head) | 8-bit affine, 64-row groups (`trunk=8/64`) |
+| n-gram embedding table | 4-bit affine, group 32, one 32.0 GB file `ngram_table.bin` (29.8 GiB), read from SSD, never wired into GPU memory |
+| vision tower (Qwen3-VL ViT) | included — image and video input work |
+| MTP head | included — speculative decoding |
+| context | native **262,144** tokens, **no YaRN** (see [Context](#context-and-the-differences-from-the-official-pack)) |
+| size | **73.85 GiB** = 79.30 GB across 69 files: 47 261 167 608 B of safetensors payload (52 shards, 47.26 GB on disk) + 32.00 GB n-gram table + tokenizer and card |
+| shards | 52 files, 3 069 tensors |
+
+Runtime requirement: **sushi ≥ 1.3.0** (this build used 1.3.0; the `mcg` codebook, `n42` GEMM body
+and `qwen-gdn` kernels are 1.3.x), Apple Silicon, macOS 26.2+. **sushi only** — does not load in
+transformers, vLLM, mlx-lm, llama.cpp or exllamav3.
+
+## Benchmarks
+
+Matched arms on this box, both packs: greedy t=0, effort medium on code / xhigh on hard+core,
+`--concurrency 2`, 16 k output cap, the same server flags (`--kv-quant 8 --mtp --ctx-size 131072
+--qwen-gdn 16 --expert-pick-tolerance 0.3`) — **only `--model` changes between rows**. Scored with
+llmprobe 0.6.12 (the version the official card reports). The three decks are separate test sets:
+**not comparable to each other** (llmprobe's own rule).
+
+| deck | ours (`initialed85/…`) | theirs (`beamster/…`, the official 2.6bpw) | verdict |
+|---|---|---|---|
+| **code** — 100 JS functions (HumanEval+MBPP), *executed* | **81/100** | **86/100** | −5 for us, entirely MBPP (33 v 37; HumanEval 48 v 49); ours under-thinks at `medium` — 332 v 556 median thinking tok/q |
+| **hard** — 50 q (MMLU-Pro · Olympiad · LiveBench · Juliet) | **36/50** | **36/50** | tie. OlympiadBench 0/10 **both packs** — an answer-emission artifact, not maths; caps both scores |
+| **core** — 92 q (GPQA-D · SuperGPQA · AIME 2025 · COMPSEC) | **69/92 (75.0 %)** | **65/92 (70.4 %)** | +4 for us, but **both are floors**: 18 v 23 cases end with no `Answer:` line, 3 v 9 hit the cap |
+| KLD vs BF16 teacher | *not measured* | 0.1355 published (base Qwen at this rate) | needs the 360 GB teacher back; harness built and proven |
+
+Read before quoting any number above:
+
+- **`hard` and `core` are floors, not point estimates** — the Olympiad 0/10 and the 18–23
+  no-`Answer:` core cases are "unresolved, not disproven"; the unresolved mass is several times the
+  4-point core gap. Treat `core` as direction, not magnitude.
+- **beamster's "LLMProbe Hard 50 — 88.0 %" is not reproduced here**: their pack, our server, the
+  arms above → 72.0 %. We claim neither number is wrong — only that they are not the same
+  measurement, which is why every table on this card carries its arms.
+- **±1/100 is the noise band** (same pack, deck and arms scored 82 then 81). The 5-point code gap
+  is 5× the band and sits where thinking is shortest — real, and partly an arms effect.
+
+Detail — protocol, cost columns, per-source breakdowns, failure-mode archaeology:
+[Quality](#quality-what-we-do-and-do-not-claim) below ·
+[`measurements/eval/README.md`](measurements/eval/README.md) ·
+[`measurements/eval/failures-by-source.md`](measurements/eval/failures-by-source.md) ·
+[`measurements.json`](measurements.json). Published evidence is aggregates + arms
+(`*-manifest.json`, hash-anchored); the case-level reports embed third-party corpora and are not
+redistributed.
 
 ## Getting it
 
@@ -64,23 +118,6 @@ brew install beamivalice/tap/sushi
 curl -L https://github.com/beamivalice/sushi/releases/latest/download/sushi-bin-macos-arm64.tar.gz | tar xz
 # a browser download is quarantined: xattr -dr com.apple.quarantine sushi-macos-arm64
 ```
-
-## What this is
-
-| part | how it is stored |
-|---|---|
-| routed experts (48 layers × 512, plus the MTP head) | **EXL3, 2.625 bpw** (`--experts-k 2.625` = "2.6bpw"), codebook **`mcg`**, window **15**, `ldlq-rotated`, `svh` output scales |
-| dense part (attention, GatedDeltaNet, shared experts, hyper-connections, indexer, embedding, lm_head) | 8-bit affine, 64-row groups (`trunk=8/64`) |
-| n-gram embedding table | 4-bit affine, group 32, one 32.0 GB file `ngram_table.bin` (29.8 GiB), read from SSD, never wired into GPU memory |
-| vision tower (Qwen3-VL ViT) | included — image and video input work |
-| MTP head | included — speculative decoding |
-| context | native **262,144** tokens, **no YaRN** (see [Context](#context-and-the-differences-from-the-official-pack)) |
-| size | **73.85 GiB** = 79.30 GB across 69 files: 47 261 167 608 B of safetensors payload (52 shards, 47.26 GB on disk) + 32.00 GB n-gram table + tokenizer and card |
-| shards | 52 files, 3 069 tensors |
-
-Runtime requirement: **sushi ≥ 1.3.0** (this build used 1.3.0; the `mcg` codebook, `n42` GEMM body
-and `qwen-gdn` kernels are 1.3.x), Apple Silicon, macOS 26.2+. **sushi only** — does not load in
-transformers, vLLM, mlx-lm, llama.cpp or exllamav3.
 
 ## Parameter count — the Hub's "26 B params" is not a parameter count
 
