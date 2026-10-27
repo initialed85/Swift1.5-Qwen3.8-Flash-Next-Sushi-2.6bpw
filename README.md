@@ -601,6 +601,15 @@ around **0.13–0.15**, with our built-in calibration (not beamster's imatrix) a
 not be 0.1355 exactly. Closing that gap needs the 360 GB BF16 source re-downloaded; the harness
 is now built and proven, so it is a fetch and ~40 minutes of GPU, not an unknown.
 
+### Shelf-life (as of 2026-10-27)
+
+The sushi upstream is reported to be preparing a release around a new quantiser, **STQ**,
+claimed to exceed 3 bpw quality at today's 2.6 bpw footprint. If that lands, this pack stops
+being the frontier row and becomes the historical 2.6 bpw baseline — the eval numbers here stay
+valid as matched-arms measurements of *this* quant, not of the model's headroom. The harness
+(`scripts/01`–`15`) is quant-agnostic: re-cutting this card against an STQ pack is the same queue
+with a different `--model`.
+
 ## File map
 
 ```
